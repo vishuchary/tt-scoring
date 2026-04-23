@@ -26,6 +26,7 @@ export default function App() {
   }
 
   function handleUpdate(t: Tournament) {
+    setTournaments(prev => prev.map(x => x.id === t.id ? t : x));
     saveTournament(t);
   }
 
