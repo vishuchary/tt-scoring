@@ -4,15 +4,18 @@ import type { Player } from '../types';
 interface Props {
   players: Player[];
   current: string;
+  usedNames?: Set<string>;
   onSelect: (name: string) => void;
   onCancel: () => void;
 }
 
-export default function PlayerPicker({ players, current, onSelect, onCancel }: Props) {
+export default function PlayerPicker({ players, current, usedNames, onSelect, onCancel }: Props) {
   const [query, setQuery] = useState('');
 
   const q = query.trim().toLowerCase();
-  const filtered = players.filter(p => p.name.toLowerCase().includes(q));
+  const filtered = players
+    .filter(p => p.name === current || !usedNames?.has(p.name))
+    .filter(p => p.name.toLowerCase().includes(q));
   const exactMatch = players.some(p => p.name.toLowerCase() === q);
 
   return (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Tournament, Group, Team, MatchFormat, Player } from '../types';
 import { generateMatches } from '../rankings';
 import PlayerPicker from './PlayerPicker';
@@ -18,7 +18,7 @@ function makeTeam(name: string, type: 'singles' | 'doubles', players: string[]):
   return { id: uid(), name, type, players };
 }
 
-type TeamDraft = { name: string; type: 'singles' | 'doubles'; p1: string; p2: string };
+type TeamDraft = { name: string; p1: string; p2: string };
 type GroupDraft = { name: string; teams: TeamDraft[] };
 
 function autoTeamName(p1: string, p2: string, type: 'singles' | 'doubles'): string {
@@ -28,10 +28,11 @@ function autoTeamName(p1: string, p2: string, type: 'singles' | 'doubles'): stri
   return `Team_${n1}`;
 }
 
-function makeTeams(count: number, startIndex = 0): TeamDraft[] {
+function makeTeams(count: number, type: 'singles' | 'doubles', startIndex = 0): TeamDraft[] {
   return Array.from({ length: count }, (_, i) => {
     const p1 = `Player_${startIndex + i + 1}`;
-    return { name: autoTeamName(p1, '', 'singles'), type: 'singles' as const, p1, p2: '' };
+    const p2 = type === 'doubles' ? `Player_${startIndex + count + i + 1}` : '';
+    return { name: autoTeamName(p1, p2, type), p1, p2 };
   });
 }
 
@@ -40,6 +41,7 @@ type PickerTarget = { gi: number; ti: number; field: 'p1' | 'p2' };
 export default function TournamentSetup({ seq, players, onCreate, onCancel }: Props) {
   const [name, setName] = useState(`Tournament_${seq}`);
   const [format, setFormat] = useState<MatchFormat>('sets');
+  const [matchType, setMatchType] = useState<'singles' | 'doubles'>('singles');
   const [groupCount, setGroupCount] = useState(1);
   const [teamCount, setTeamCount] = useState(2);
   const [step, setStep] = useState<'meta' | 'teams'>('meta');
@@ -47,11 +49,14 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
   const [currentGroup, setCurrentGroup] = useState(0);
   const [picker, setPicker] = useState<PickerTarget | null>(null);
 
+  // Fix issue 3: clear picker when switching groups so it doesn't get stuck
+  useEffect(() => { setPicker(null); }, [currentGroup]);
+
   function initGroups() {
     setGroups(
       Array.from({ length: groupCount }, (_, i) => ({
         name: `Group ${String.fromCharCode(65 + i)}`,
-        teams: makeTeams(teamCount),
+        teams: makeTeams(teamCount, matchType),
       }))
     );
     setCurrentGroup(0);
@@ -66,13 +71,10 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
         teams: g.teams.map((t, j) => {
           if (j !== ti) return t;
           const updated = { ...t, [field]: value };
-          if (field === 'type' && value === 'doubles' && !t.p2) {
-            updated.p2 = `Player_${g.teams.length + j + 1}`;
-          }
           // Auto-update team name if it still matches the auto-generated pattern
-          const wasAuto = t.name === autoTeamName(t.p1, t.p2, t.type);
-          if (wasAuto && (field === 'p1' || field === 'p2' || field === 'type')) {
-            updated.name = autoTeamName(updated.p1, updated.p2, updated.type);
+          const wasAuto = t.name === autoTeamName(t.p1, t.p2, matchType);
+          if (wasAuto && (field === 'p1' || field === 'p2')) {
+            updated.name = autoTeamName(updated.p1, updated.p2, matchType);
           }
           return updated;
         }),
@@ -90,9 +92,10 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
     setGroups(prev => prev.map((g, i) => {
       if (i !== gi) return g;
       const p1 = `Player_${g.teams.length + 1}`;
+      const p2 = matchType === 'doubles' ? `Player_${g.teams.length + 2}` : '';
       return {
         ...g,
-        teams: [...g.teams, { name: autoTeamName(p1, '', 'singles'), type: 'singles' as const, p1, p2: '' }],
+        teams: [...g.teams, { name: autoTeamName(p1, p2, matchType), p1, p2 }],
       };
     }));
   }
@@ -102,8 +105,8 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
       const teams: Team[] = g.teams.map((t, i) =>
         makeTeam(
           t.name.trim() || `Team ${i + 1}`,
-          t.type,
-          t.type === 'doubles' ? [t.p1, t.p2].filter(Boolean) : [t.p1].filter(Boolean)
+          matchType,
+          matchType === 'doubles' ? [t.p1, t.p2].filter(Boolean) : [t.p1].filter(Boolean)
         )
       );
       const matchPairs = generateMatches(teams);
@@ -142,12 +145,23 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
       ? (picker.field === 'p1' ? g.teams[picker.ti]?.p1 : g.teams[picker.ti]?.p2) ?? ''
       : '';
 
+    // Fix issue 2: collect all assigned player names in current group except the current picker slot
+    const usedNames = new Set(
+      g.teams.flatMap((t, ti) => {
+        const names: string[] = [];
+        if (!(picker?.ti === ti && picker?.field === 'p1') && t.p1) names.push(t.p1);
+        if (!(picker?.ti === ti && picker?.field === 'p2') && t.p2) names.push(t.p2);
+        return names;
+      })
+    );
+
     return (
       <div className="min-h-screen bg-gray-50">
         {picker && (
           <PlayerPicker
             players={players}
             current={currentPickerValue}
+            usedNames={usedNames}
             onSelect={handlePickerSelect}
             onCancel={() => setPicker(null)}
           />
@@ -196,27 +210,10 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Type</label>
-                    <div className="flex gap-2">
-                      {(['singles', 'doubles'] as const).map(type => (
-                        <button
-                          key={type}
-                          onClick={() => updateTeam(currentGroup, ti, 'type', type)}
-                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                            t.type === type ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          {type.charAt(0).toUpperCase() + type.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className={`grid gap-2 ${t.type === 'doubles' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  <div className={`grid gap-2 ${matchType === 'doubles' ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">
-                        {t.type === 'doubles' ? 'Player 1' : 'Player Name'}
+                        {matchType === 'doubles' ? 'Player 1' : 'Player Name'}
                       </label>
                       <button
                         onClick={() => openPicker(currentGroup, ti, 'p1')}
@@ -225,7 +222,7 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
                         {t.p1 || <span className="text-gray-400">Select player…</span>}
                       </button>
                     </div>
-                    {t.type === 'doubles' && (
+                    {matchType === 'doubles' && (
                       <div>
                         <label className="block text-xs text-gray-500 mb-1">Player 2</label>
                         <button
@@ -295,6 +292,28 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
                   </div>
                   <div className="text-xs text-gray-500 mt-0.5">
                     {f === 'sets' ? 'Most sets wins the match' : 'Most game wins ranks higher'}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Match Type</label>
+            <div className="grid grid-cols-2 gap-3">
+              {(['singles', 'doubles'] as const).map(mt => (
+                <button
+                  key={mt}
+                  onClick={() => setMatchType(mt)}
+                  className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                    matchType === mt ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-200'
+                  }`}
+                >
+                  <div className="font-medium text-gray-900 text-sm">
+                    {mt.charAt(0).toUpperCase() + mt.slice(1)}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {mt === 'singles' ? '1 player per team' : '2 players per team'}
                   </div>
                 </button>
               ))}
