@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Tournament, Group } from '../types';
 import GroupView from './GroupView';
 
@@ -13,6 +13,25 @@ export default function TournamentView({ tournament, onUpdate, onDelete, onBack 
   const [selectedGroup, setSelectedGroup] = useState<string | null>(
     tournament.groups[0]?.id ?? null
   );
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(tournament.name);
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingName) nameRef.current?.select();
+  }, [editingName]);
+
+  // Keep input in sync if tournament name changes via Firebase
+  useEffect(() => {
+    if (!editingName) setNameInput(tournament.name);
+  }, [tournament.name, editingName]);
+
+  function commitName() {
+    const name = nameInput.trim() || tournament.name;
+    setNameInput(name);
+    setEditingName(false);
+    if (name !== tournament.name) onUpdate({ ...tournament, name });
+  }
 
   function handleGroupUpdate(group: Group) {
     onUpdate({
@@ -28,10 +47,27 @@ export default function TournamentView({ tournament, onUpdate, onDelete, onBack 
       <div className="max-w-5xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <button onClick={onBack} className="text-gray-500 hover:text-gray-700">← Back</button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{tournament.name}</h1>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <button onClick={onBack} className="text-gray-500 hover:text-gray-700 shrink-0">← Back</button>
+            <div className="flex-1 min-w-0">
+              {editingName ? (
+                <input
+                  ref={nameRef}
+                  className="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-blue-400 outline-none w-full"
+                  value={nameInput}
+                  onChange={e => setNameInput(e.target.value)}
+                  onBlur={commitName}
+                  onKeyDown={e => e.key === 'Enter' && commitName()}
+                />
+              ) : (
+                <h1
+                  className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors truncate"
+                  title="Tap to rename"
+                  onClick={() => setEditingName(true)}
+                >
+                  {tournament.name}
+                </h1>
+              )}
               <p className="text-sm text-gray-500">
                 {tournament.format === 'sets' ? 'Best of 3 Sets' : '2 Games'} format
               </p>
@@ -39,7 +75,7 @@ export default function TournamentView({ tournament, onUpdate, onDelete, onBack 
           </div>
           <button
             onClick={() => { if (confirm('Delete this tournament?')) onDelete(); }}
-            className="text-red-400 hover:text-red-600 text-sm"
+            className="text-red-400 hover:text-red-600 text-sm shrink-0 ml-4"
           >
             Delete
           </button>

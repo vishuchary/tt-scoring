@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Group, Match, MatchFormat } from '../types';
+import type { Group, Match, MatchFormat, Team } from '../types';
 import { computeStandings } from '../rankings';
 import MatchEntry from './MatchEntry';
 
@@ -9,8 +9,54 @@ interface Props {
   onUpdate: (g: Group) => void;
 }
 
+type Tab = 'matches' | 'standings' | 'teams';
+
+function InlineInput({
+  value,
+  onSave,
+  className = '',
+}: {
+  value: string;
+  onSave: (val: string) => void;
+  className?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  function commit() {
+    setEditing(false);
+    const v = draft.trim() || value;
+    setDraft(v);
+    if (v !== value) onSave(v);
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        className={`border-b border-blue-400 outline-none bg-transparent ${className}`}
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => e.key === 'Enter' && commit()}
+        onFocus={e => e.target.select()}
+      />
+    );
+  }
+
+  return (
+    <span
+      className={`cursor-pointer hover:text-blue-600 transition-colors ${className}`}
+      title="Tap to edit"
+      onClick={() => { setDraft(value); setEditing(true); }}
+    >
+      {value}
+    </span>
+  );
+}
+
 export default function GroupView({ group, format, onUpdate }: Props) {
-  const [tab, setTab] = useState<'matches' | 'standings'>('matches');
+  const [tab, setTab] = useState<Tab>('matches');
   const [editMatch, setEditMatch] = useState<Match | null>(null);
 
   const standings = computeStandings(group, format);
@@ -24,7 +70,25 @@ export default function GroupView({ group, format, onUpdate }: Props) {
     setEditMatch(null);
   }
 
+  function updateTeam(updatedTeam: Team) {
+    onUpdate({
+      ...group,
+      teams: group.teams.map(t => t.id === updatedTeam.id ? updatedTeam : t),
+    });
+  }
+
+  function updateTeamName(team: Team, name: string) {
+    updateTeam({ ...team, name });
+  }
+
+  function updatePlayerName(team: Team, idx: number, name: string) {
+    const players = [...team.players];
+    players[idx] = name;
+    updateTeam({ ...team, players });
+  }
+
   const completedCount = group.matches.filter(m => m.completed).length;
+  const tabs: Tab[] = ['matches', 'standings', 'teams'];
 
   return (
     <div>
@@ -40,24 +104,22 @@ export default function GroupView({ group, format, onUpdate }: Props) {
       )}
 
       {/* Progress */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4 flex items-center gap-4">
-        <div className="flex-1">
-          <div className="flex justify-between text-sm text-gray-600 mb-1">
-            <span>Matches completed</span>
-            <span>{completedCount} / {group.matches.length}</span>
-          </div>
-          <div className="w-full bg-gray-100 rounded-full h-2">
-            <div
-              className="bg-blue-500 h-2 rounded-full transition-all"
-              style={{ width: `${group.matches.length ? (completedCount / group.matches.length) * 100 : 0}%` }}
-            />
-          </div>
+      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
+        <div className="flex justify-between text-sm text-gray-600 mb-1">
+          <span>Matches completed</span>
+          <span>{completedCount} / {group.matches.length}</span>
+        </div>
+        <div className="w-full bg-gray-100 rounded-full h-2">
+          <div
+            className="bg-blue-500 h-2 rounded-full transition-all"
+            style={{ width: `${group.matches.length ? (completedCount / group.matches.length) * 100 : 0}%` }}
+          />
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-4">
-        {(['matches', 'standings'] as const).map(t => (
+        {tabs.map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -72,6 +134,7 @@ export default function GroupView({ group, format, onUpdate }: Props) {
         ))}
       </div>
 
+      {/* Matches tab */}
       {tab === 'matches' && (
         <div className="space-y-2">
           {group.matches.map(match => {
@@ -92,9 +155,7 @@ export default function GroupView({ group, format, onUpdate }: Props) {
                       <div className="text-center min-w-[100px]">
                         <div className="text-sm font-mono text-gray-700">
                           {match.games.map((g, i) => (
-                            <span key={i} className="mx-1">
-                              {g.team1Score}-{g.team2Score}
-                            </span>
+                            <span key={i} className="mx-1">{g.team1Score}-{g.team2Score}</span>
                           ))}
                         </div>
                       </div>
@@ -104,11 +165,10 @@ export default function GroupView({ group, format, onUpdate }: Props) {
                     <span className="font-medium text-gray-900 flex-1">{t2?.name}</span>
                   </div>
                   <div className="ml-4">
-                    {match.completed ? (
-                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Done</span>
-                    ) : (
-                      <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">Pending</span>
-                    )}
+                    {match.completed
+                      ? <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Done</span>
+                      : <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">Pending</span>
+                    }
                   </div>
                 </div>
               </div>
@@ -117,6 +177,7 @@ export default function GroupView({ group, format, onUpdate }: Props) {
         </div>
       )}
 
+      {/* Standings tab */}
       {tab === 'standings' && (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
@@ -160,6 +221,42 @@ export default function GroupView({ group, format, onUpdate }: Props) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Teams tab */}
+      {tab === 'teams' && (
+        <div className="space-y-2">
+          {group.teams.map((team, i) => (
+            <div key={team.id} className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="flex items-start gap-3">
+                <span className="text-xs text-gray-400 mt-1 w-5 shrink-0">{i + 1}</span>
+                <div className="flex-1 space-y-1">
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Team name</p>
+                    <InlineInput
+                      value={team.name}
+                      onSave={name => updateTeamName(team, name)}
+                      className="text-sm font-semibold text-gray-900 w-full"
+                    />
+                  </div>
+                  {team.players.map((player, pi) => (
+                    <div key={pi}>
+                      <p className="text-xs text-gray-400 mb-0.5">
+                        {team.players.length > 1 ? `Player ${pi + 1}` : 'Player'}
+                      </p>
+                      <InlineInput
+                        value={player}
+                        onSave={name => updatePlayerName(team, pi, name)}
+                        className="text-sm text-gray-700 w-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+          <p className="text-xs text-center text-gray-400 pt-1">Tap any name to edit</p>
         </div>
       )}
     </div>
