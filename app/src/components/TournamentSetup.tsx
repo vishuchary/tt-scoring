@@ -31,7 +31,7 @@ export default function TournamentSetup({ onCreate, onCancel }: Props) {
   const [name, setName] = useState('');
   const [format, setFormat] = useState<MatchFormat>('sets');
   const [groupCount, setGroupCount] = useState(1);
-  const [teamCount, setTeamCount] = useState(4);
+  const [teamCount, setTeamCount] = useState(2);
   const [step, setStep] = useState<'meta' | 'teams'>('meta');
   const [groups, setGroups] = useState<GroupDraft[]>([]);
   const [currentGroup, setCurrentGroup] = useState(0);
