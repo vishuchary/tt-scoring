@@ -21,13 +21,18 @@ function makeTeam(name: string, type: 'singles' | 'doubles', players: string[]):
 type TeamDraft = { name: string; type: 'singles' | 'doubles'; p1: string; p2: string };
 type GroupDraft = { name: string; teams: TeamDraft[] };
 
+function autoTeamName(p1: string, p2: string, type: 'singles' | 'doubles'): string {
+  const n1 = p1.trim();
+  const n2 = p2.trim();
+  if (type === 'doubles' && n2) return `T_${n1}_${n2}`;
+  return `T_${n1}`;
+}
+
 function makeTeams(count: number, startIndex = 0): TeamDraft[] {
-  return Array.from({ length: count }, (_, i) => ({
-    name: `Team_${startIndex + i + 1}`,
-    type: 'singles' as const,
-    p1: `Player_${startIndex + i + 1}`,
-    p2: '',
-  }));
+  return Array.from({ length: count }, (_, i) => {
+    const p1 = `Player_${startIndex + i + 1}`;
+    return { name: autoTeamName(p1, '', 'singles'), type: 'singles' as const, p1, p2: '' };
+  });
 }
 
 type PickerTarget = { gi: number; ti: number; field: 'p1' | 'p2' };
@@ -61,8 +66,13 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
         teams: g.teams.map((t, j) => {
           if (j !== ti) return t;
           const updated = { ...t, [field]: value };
-          if (field === 'type' && value === 'doubles' && !updated.p2) {
+          if (field === 'type' && value === 'doubles' && !t.p2) {
             updated.p2 = `Player_${g.teams.length + j + 1}`;
+          }
+          // Auto-update team name if it still matches the auto-generated pattern
+          const wasAuto = t.name === autoTeamName(t.p1, t.p2, t.type);
+          if (wasAuto && (field === 'p1' || field === 'p2' || field === 'type')) {
+            updated.name = autoTeamName(updated.p1, updated.p2, updated.type);
           }
           return updated;
         }),
@@ -77,17 +87,14 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
   }
 
   function addTeam(gi: number) {
-    setGroups(prev => prev.map((g, i) =>
-      i !== gi ? g : {
+    setGroups(prev => prev.map((g, i) => {
+      if (i !== gi) return g;
+      const p1 = `Player_${g.teams.length + 1}`;
+      return {
         ...g,
-        teams: [...g.teams, {
-          name: `Team_${g.teams.length + 1}`,
-          type: 'singles' as const,
-          p1: `Player_${g.teams.length + 1}`,
-          p2: '',
-        }],
-      }
-    ));
+        teams: [...g.teams, { name: autoTeamName(p1, '', 'singles'), type: 'singles' as const, p1, p2: '' }],
+      };
+    }));
   }
 
   function handleCreate() {

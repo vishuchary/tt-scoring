@@ -135,8 +135,7 @@ export default function App() {
       <div className="max-w-4xl mx-auto p-6">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">🏓 TT Tournament</h1>
-            <p className="text-gray-500 mt-1">Ping Pong Tournament Scoring</p>
+            <h1 className="text-2xl font-bold text-gray-900">🏓 Mountain House TT Club</h1>
           </div>
           <div className="flex gap-2">
             <button

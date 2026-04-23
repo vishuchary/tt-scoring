@@ -11,9 +11,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
-        name: 'TT Tournament',
-        short_name: 'TT Score',
-        description: 'Ping Pong Tournament Scoring',
+        name: 'Mountain House TT Club',
+        short_name: 'MH TT Club',
+        description: 'Mountain House Table Tennis Club Tournament Scoring',
         theme_color: '#2563eb',
         background_color: '#f9fafb',
         display: 'standalone',
