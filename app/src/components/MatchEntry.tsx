@@ -12,6 +12,12 @@ interface Props {
 
 const GAME_COUNT = { sets: 3, games: 2 } as const;
 
+function gameWinner(s1: number, s2: number): 'team1' | 'team2' | null {
+  if (s1 >= 11 && s1 - s2 >= 2) return 'team1';
+  if (s2 >= 11 && s2 - s1 >= 2) return 'team2';
+  return null;
+}
+
 export default function MatchEntry({ match, team1, team2, format, onSave, onCancel }: Props) {
   const count = GAME_COUNT[format];
   const initialGames: Game[] = Array.from({ length: count }, (_, i) => ({
@@ -28,8 +34,9 @@ export default function MatchEntry({ match, team1, team2, format, onSave, onCanc
   function getWinner(): string | null {
     let t1wins = 0, t2wins = 0;
     for (const g of games) {
-      if (g.team1Score > g.team2Score) t1wins++;
-      else if (g.team2Score > g.team1Score) t2wins++;
+      const w = gameWinner(g.team1Score, g.team2Score);
+      if (w === 'team1') t1wins++;
+      else if (w === 'team2') t2wins++;
     }
     if (t1wins > t2wins) return team1.name;
     if (t2wins > t1wins) return team2.name;
@@ -63,8 +70,9 @@ export default function MatchEntry({ match, team1, team2, format, onSave, onCanc
 
           {/* Score rows */}
           {games.map((g, i) => {
-            const t1w = g.team1Score > g.team2Score;
-            const t2w = g.team2Score > g.team1Score;
+            const gw = gameWinner(g.team1Score, g.team2Score);
+            const t1w = gw === 'team1';
+            const t2w = gw === 'team2';
             return (
               <div key={i} className="grid grid-cols-3 gap-3 items-center">
                 <input

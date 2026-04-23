@@ -1,5 +1,11 @@
 import type { Group, Match, MatchFormat, Team, TeamStats } from './types';
 
+function gameWinner(s1: number, s2: number): 'team1' | 'team2' | null {
+  if (s1 >= 11 && s1 - s2 >= 2) return 'team1';
+  if (s2 >= 11 && s2 - s1 >= 2) return 'team2';
+  return null;
+}
+
 function getMatchResult(match: Match, teamId: string, format: MatchFormat) {
   const isTeam1 = match.team1Id === teamId;
   let setsWon = 0, setsLost = 0, gameWins = 0, gameLosses = 0;
@@ -10,8 +16,11 @@ function getMatchResult(match: Match, teamId: string, format: MatchFormat) {
     const oppScore = isTeam1 ? game.team2Score : game.team1Score;
     pointsFor += myScore;
     pointsAgainst += oppScore;
-    if (myScore > oppScore) { setsWon++; gameWins++; }
-    else if (oppScore > myScore) { setsLost++; gameLosses++; }
+    const w = gameWinner(game.team1Score, game.team2Score);
+    const iWon = isTeam1 ? w === 'team1' : w === 'team2';
+    const iLost = isTeam1 ? w === 'team2' : w === 'team1';
+    if (iWon) { setsWon++; gameWins++; }
+    else if (iLost) { setsLost++; gameLosses++; }
   }
 
   // Match win: sets format = more sets; games format = more game wins
