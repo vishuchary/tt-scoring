@@ -20,6 +20,7 @@ export default function App() {
   }, []);
 
   function handleCreate(t: Tournament) {
+    setTournaments(prev => [t, ...prev]);
     saveTournament(t);
     setView({ type: 'tournament', id: t.id });
   }
