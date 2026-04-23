@@ -3,6 +3,7 @@ import type { Tournament, Group, Team, MatchFormat } from '../types';
 import { generateMatches } from '../rankings';
 
 interface Props {
+  seq: number;
   onCreate: (t: Tournament) => void;
   onCancel: () => void;
 }
@@ -18,17 +19,17 @@ function makeTeam(name: string, type: 'singles' | 'doubles', players: string[]):
 type TeamDraft = { name: string; type: 'singles' | 'doubles'; p1: string; p2: string };
 type GroupDraft = { name: string; teams: TeamDraft[] };
 
-function makeTeams(count: number): TeamDraft[] {
-  return Array.from({ length: count }, () => ({
-    name: '',
+function makeTeams(count: number, startIndex = 0): TeamDraft[] {
+  return Array.from({ length: count }, (_, i) => ({
+    name: `Team_${startIndex + i + 1}`,
     type: 'singles' as const,
-    p1: '',
+    p1: `Player_${startIndex + i + 1}`,
     p2: '',
   }));
 }
 
-export default function TournamentSetup({ onCreate, onCancel }: Props) {
-  const [name, setName] = useState('');
+export default function TournamentSetup({ seq, onCreate, onCancel }: Props) {
+  const [name, setName] = useState(`Tournament_${seq}`);
   const [format, setFormat] = useState<MatchFormat>('sets');
   const [groupCount, setGroupCount] = useState(1);
   const [teamCount, setTeamCount] = useState(2);
@@ -66,7 +67,12 @@ export default function TournamentSetup({ onCreate, onCancel }: Props) {
     setGroups(prev => prev.map((g, i) =>
       i !== gi ? g : {
         ...g,
-        teams: [...g.teams, { name: '', type: 'singles', p1: '', p2: '' }],
+        teams: [...g.teams, {
+          name: `Team_${g.teams.length + 1}`,
+          type: 'singles' as const,
+          p1: `Player_${g.teams.length + 1}`,
+          p2: '',
+        }],
       }
     ));
   }
@@ -93,7 +99,7 @@ export default function TournamentSetup({ onCreate, onCancel }: Props) {
 
     onCreate({
       id: uid(),
-      name: name.trim() || 'Tournament',
+      name: name.trim() || `Tournament_${seq}`,
       format,
       groups: builtGroups,
       createdAt: Date.now(),

@@ -97,7 +97,7 @@ export default function App() {
   }
 
   if (view.type === 'new') {
-    return <TournamentSetup onCreate={handleCreate} onCancel={() => setView({ type: 'home' })} />;
+    return <TournamentSetup seq={tournaments.length + 1} onCreate={handleCreate} onCancel={() => setView({ type: 'home' })} />;
   }
 
   if (view.type === 'tournament') {
