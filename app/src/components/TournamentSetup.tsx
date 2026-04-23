@@ -24,8 +24,8 @@ type GroupDraft = { name: string; teams: TeamDraft[] };
 function autoTeamName(p1: string, p2: string, type: 'singles' | 'doubles'): string {
   const n1 = p1.trim();
   const n2 = p2.trim();
-  if (type === 'doubles' && n2) return `T_${n1}_${n2}`;
-  return `T_${n1}`;
+  if (type === 'doubles' && n2) return `Team_${n1}_${n2}`;
+  return `Team_${n1}`;
 }
 
 function makeTeams(count: number, startIndex = 0): TeamDraft[] {
