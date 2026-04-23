@@ -4,7 +4,7 @@ export interface Player {
   id: string;
   name: string;
   age?: number;
-  sex?: 'male' | 'female' | 'other';
+  sex?: 'male' | 'female';
   hand?: 'right' | 'left';
   place?: string;
 }

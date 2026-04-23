@@ -16,13 +16,13 @@ const DEFAULT_PLACE = 'Mountain House';
 type PlayerDraft = {
   name: string;
   age: string;
-  sex: 'male' | 'female' | 'other' | '';
+  sex: 'male' | 'female' | '';
   hand: 'right' | 'left' | '';
   place: string;
 };
 
 function emptyDraft(): PlayerDraft {
-  return { name: '', age: '', sex: '', hand: '', place: DEFAULT_PLACE };
+  return { name: '', age: '', sex: 'male', hand: 'right', place: DEFAULT_PLACE };
 }
 
 function playerToDraft(p: Player): PlayerDraft {
@@ -140,7 +140,6 @@ function PlayerForm({
               options={[
                 { label: 'Male', value: 'male' },
                 { label: 'Female', value: 'female' },
-                { label: 'Other', value: 'other' },
               ]}
               value={draft.sex}
               onChange={v => set('sex', v)}
