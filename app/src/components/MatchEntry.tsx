@@ -52,8 +52,8 @@ export default function MatchEntry({ match, team1, team2, format, onSave, onCanc
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 text-2xl leading-none px-1">×</button>
         </div>
 
-        {/* Scrollable content */}
-        <div className="overflow-y-auto p-5 space-y-4">
+        {/* Content */}
+        <div className="p-5 space-y-4">
           {/* Team name headers */}
           <div className="grid grid-cols-3 gap-2 text-sm font-semibold text-gray-700">
             <div className="text-center truncate">{team1.name}</div>
@@ -75,6 +75,7 @@ export default function MatchEntry({ match, team1, team2, format, onSave, onCanc
                     t1w ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 focus:border-blue-400'
                   }`}
                   value={g.team1Score}
+                  onFocus={e => e.target.select()}
                   onChange={e => setScore(i, 'team1Score', e.target.value)}
                 />
                 <div className="text-center text-gray-400 text-sm font-medium">
@@ -88,6 +89,7 @@ export default function MatchEntry({ match, team1, team2, format, onSave, onCanc
                     t2w ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 focus:border-blue-400'
                   }`}
                   value={g.team2Score}
+                  onFocus={e => e.target.select()}
                   onChange={e => setScore(i, 'team2Score', e.target.value)}
                 />
               </div>
