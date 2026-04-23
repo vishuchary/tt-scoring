@@ -18,9 +18,11 @@ export function subscribeTournaments(callback: (tournaments: Tournament[]) => vo
 }
 
 export function saveTournament(t: Tournament): Promise<void> {
-  return set(ref(db, `tournaments/${t.id}`), t);
+  return set(ref(db, `tournaments/${t.id}`), t)
+    .catch(err => console.error('Firebase save failed:', err));
 }
 
 export function deleteTournament(id: string): Promise<void> {
-  return remove(ref(db, `tournaments/${id}`));
+  return remove(ref(db, `tournaments/${id}`))
+    .catch(err => console.error('Firebase delete failed:', err));
 }

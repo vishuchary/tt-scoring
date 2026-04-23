@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Tournament } from './types';
 import { subscribeTournaments, saveTournament, deleteTournament } from './store';
 import TournamentSetup from './components/TournamentSetup';
@@ -10,12 +10,73 @@ type View =
   | { type: 'new' }
   | { type: 'tournament'; id: string };
 
+function getTournamentStatus(t: Tournament): 'not-started' | 'in-progress' | 'completed' {
+  const allMatches = t.groups.flatMap(g => g.matches);
+  if (allMatches.length === 0) return 'not-started';
+  const completedCount = allMatches.filter(m => m.completed).length;
+  if (completedCount === 0) return 'not-started';
+  if (completedCount === allMatches.length) return 'completed';
+  return 'in-progress';
+}
+
+function TournamentCard({ t, onClick }: { t: Tournament; onClick: () => void }) {
+  const status = getTournamentStatus(t);
+  const allMatches = t.groups.flatMap(g => g.matches);
+  const completedCount = allMatches.filter(m => m.completed).length;
+
+  return (
+    <div
+      onClick={onClick}
+      className={`bg-white rounded-xl border p-5 cursor-pointer hover:shadow-sm transition-all ${
+        status === 'in-progress' ? 'border-blue-300 hover:border-blue-400' : 'border-gray-200 hover:border-gray-300'
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-lg font-semibold text-gray-900 truncate">{t.name}</h2>
+            {status === 'in-progress' && (
+              <span className="shrink-0 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Live</span>
+            )}
+            {status === 'completed' && (
+              <span className="shrink-0 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Done</span>
+            )}
+          </div>
+          <p className="text-sm text-gray-500">
+            {t.groups.length} group{t.groups.length !== 1 ? 's' : ''} &middot;{' '}
+            {t.format === 'sets' ? 'Best of 3 Sets' : '2 Games'} &middot;{' '}
+            {new Date(t.createdAt).toLocaleDateString()}
+          </p>
+          {allMatches.length > 0 && (
+            <p className="text-xs text-gray-400 mt-1">
+              {completedCount} / {allMatches.length} matches played
+            </p>
+          )}
+        </div>
+        <span className="text-gray-400 text-xl ml-4">&rsaquo;</span>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [view, setView] = useState<View>({ type: 'home' });
+  const hasAutoNavigated = useRef(false);
 
   useEffect(() => {
-    const unsubscribe = subscribeTournaments(setTournaments);
+    const unsubscribe = subscribeTournaments((list) => {
+      setTournaments(list);
+
+      // On first load, auto-navigate to the most recent in-progress tournament
+      if (!hasAutoNavigated.current && list.length > 0) {
+        hasAutoNavigated.current = true;
+        const inProgress = list.find(t => getTournamentStatus(t) === 'in-progress');
+        if (inProgress) {
+          setView({ type: 'tournament', id: inProgress.id });
+        }
+      }
+    });
     return unsubscribe;
   }, []);
 
@@ -52,6 +113,9 @@ export default function App() {
     );
   }
 
+  const inProgress = tournaments.filter(t => getTournamentStatus(t) === 'in-progress');
+  const history = tournaments.filter(t => getTournamentStatus(t) !== 'in-progress');
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-6">
@@ -64,7 +128,7 @@ export default function App() {
             onClick={() => setView({ type: 'new' })}
             className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
-            + New Tournament
+            + New
           </button>
         </div>
 
@@ -75,26 +139,28 @@ export default function App() {
             <p className="mt-2">Create your first tournament to get started</p>
           </div>
         ) : (
-          <div className="grid gap-4">
-            {tournaments.map(t => (
-              <div
-                key={t.id}
-                onClick={() => setView({ type: 'tournament', id: t.id })}
-                className="bg-white rounded-xl border border-gray-200 p-5 cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">{t.name}</h2>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {t.groups.length} group{t.groups.length !== 1 ? 's' : ''} &middot;{' '}
-                      {t.format === 'sets' ? 'Best of 3 Sets' : '2 Games'} &middot;{' '}
-                      {new Date(t.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <span className="text-gray-400 text-xl">&rsaquo;</span>
+          <div className="space-y-8">
+            {inProgress.length > 0 && (
+              <section>
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">In Progress</h2>
+                <div className="grid gap-3">
+                  {inProgress.map(t => (
+                    <TournamentCard key={t.id} t={t} onClick={() => setView({ type: 'tournament', id: t.id })} />
+                  ))}
                 </div>
-              </div>
-            ))}
+              </section>
+            )}
+
+            {history.length > 0 && (
+              <section>
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">History</h2>
+                <div className="grid gap-3">
+                  {history.map(t => (
+                    <TournamentCard key={t.id} t={t} onClick={() => setView({ type: 'tournament', id: t.id })} />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         )}
       </div>
