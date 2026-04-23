@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import type { Tournament } from './types';
-import { subscribeTournaments, saveTournament, deleteTournament } from './store';
+import type { Tournament, Player } from './types';
+import { subscribeTournaments, saveTournament, deleteTournament, subscribePlayers } from './store';
 import TournamentSetup from './components/TournamentSetup';
 import TournamentView from './components/TournamentView';
+import PlayersScreen from './components/PlayersScreen';
 import './index.css';
 
 type View =
   | { type: 'home' }
   | { type: 'new' }
-  | { type: 'tournament'; id: string };
+  | { type: 'tournament'; id: string }
+  | { type: 'players' };
 
 function getTournamentStatus(t: Tournament): 'not-started' | 'in-progress' | 'completed' {
   const allMatches = t.groups.flatMap(g => g.matches);
@@ -61,23 +63,24 @@ function TournamentCard({ t, onClick }: { t: Tournament; onClick: () => void }) 
 
 export default function App() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [view, setView] = useState<View>({ type: 'home' });
   const hasAutoNavigated = useRef(false);
 
   useEffect(() => {
-    const unsubscribe = subscribeTournaments((list) => {
+    const unsubscribeTournaments = subscribeTournaments((list) => {
       setTournaments(list);
-
-      // On first load, auto-navigate to the most recent in-progress tournament
       if (!hasAutoNavigated.current && list.length > 0) {
         hasAutoNavigated.current = true;
         const inProgress = list.find(t => getTournamentStatus(t) === 'in-progress');
-        if (inProgress) {
-          setView({ type: 'tournament', id: inProgress.id });
-        }
+        if (inProgress) setView({ type: 'tournament', id: inProgress.id });
       }
     });
-    return unsubscribe;
+    const unsubscribePlayers = subscribePlayers(setPlayers);
+    return () => {
+      unsubscribeTournaments();
+      unsubscribePlayers();
+    };
   }, []);
 
   function handleCreate(t: Tournament) {
@@ -97,7 +100,18 @@ export default function App() {
   }
 
   if (view.type === 'new') {
-    return <TournamentSetup seq={tournaments.length + 1} onCreate={handleCreate} onCancel={() => setView({ type: 'home' })} />;
+    return (
+      <TournamentSetup
+        seq={tournaments.length + 1}
+        players={players}
+        onCreate={handleCreate}
+        onCancel={() => setView({ type: 'home' })}
+      />
+    );
+  }
+
+  if (view.type === 'players') {
+    return <PlayersScreen players={players} onBack={() => setView({ type: 'home' })} />;
   }
 
   if (view.type === 'tournament') {
@@ -124,12 +138,20 @@ export default function App() {
             <h1 className="text-3xl font-bold text-gray-900">🏓 TT Tournament</h1>
             <p className="text-gray-500 mt-1">Ping Pong Tournament Scoring</p>
           </div>
-          <button
-            onClick={() => setView({ type: 'new' })}
-            className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            + New
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setView({ type: 'players' })}
+              className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-lg font-medium hover:border-gray-300 transition-colors text-sm"
+            >
+              Players {players.length > 0 && <span className="text-gray-400">({players.length})</span>}
+            </button>
+            <button
+              onClick={() => setView({ type: 'new' })}
+              className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              + New
+            </button>
+          </div>
         </div>
 
         {tournaments.length === 0 ? (
@@ -150,7 +172,6 @@ export default function App() {
                 </div>
               </section>
             )}
-
             {history.length > 0 && (
               <section>
                 <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">History</h2>
