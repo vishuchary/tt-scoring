@@ -49,12 +49,20 @@ export default function TournamentSetup({ seq, onCreate, onCancel }: Props) {
   }
 
   function updateTeam(gi: number, ti: number, field: keyof TeamDraft, value: string) {
-    setGroups(prev => prev.map((g, i) =>
-      i !== gi ? g : {
+    setGroups(prev => prev.map((g, i) => {
+      if (i !== gi) return g;
+      return {
         ...g,
-        teams: g.teams.map((t, j) => j !== ti ? t : { ...t, [field]: value }),
-      }
-    ));
+        teams: g.teams.map((t, j) => {
+          if (j !== ti) return t;
+          const updated = { ...t, [field]: value };
+          if (field === 'type' && value === 'doubles' && !updated.p2) {
+            updated.p2 = `Player_${g.teams.length + j + 1}`;
+          }
+          return updated;
+        }),
+      };
+    }));
   }
 
   function removeTeam(gi: number, ti: number) {
