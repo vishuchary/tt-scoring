@@ -19,7 +19,7 @@ type TeamDraft = { name: string; type: 'singles' | 'doubles'; p1: string; p2: st
 type GroupDraft = { name: string; teams: TeamDraft[] };
 
 function makeTeams(count: number): TeamDraft[] {
-  return Array.from({ length: count }, (_, i) => ({
+  return Array.from({ length: count }, () => ({
     name: '',
     type: 'singles' as const,
     p1: '',
