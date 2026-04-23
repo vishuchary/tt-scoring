@@ -132,11 +132,21 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Banner */}
+      <div className="relative w-full h-48 sm:h-64 overflow-hidden">
+        <img
+          src="/banner.jpg"
+          alt="Mountain House TT Club"
+          className="w-full h-full object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow">🏓 Mountain House TT Club</h1>
+        </div>
+      </div>
+
       <div className="max-w-4xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">🏓 Mountain House TT Club</h1>
-          </div>
+        <div className="flex items-center justify-end gap-2 mb-8">
           <div className="flex gap-2">
             <button
               onClick={() => setView({ type: 'players' })}
