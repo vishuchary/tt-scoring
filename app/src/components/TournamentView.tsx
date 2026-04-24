@@ -114,7 +114,9 @@ function AdvanceSetup({
                       <span className="font-medium text-gray-900">{teamDisplayName(s.team)}</span>
                       {grpName && <span className="text-xs text-gray-400 ml-1.5">{grpName}</span>}
                     </div>
-                    <span className="text-gray-500 text-xs">{s.matchWins}W-{s.matchLosses}L</span>
+                    <span className="text-gray-500 text-xs">
+                      {format === 'sets' ? `${s.matchWins}W-${s.matchLosses}L` : `${s.gameWins}G`}
+                    </span>
                     <span className={`text-xs font-medium w-10 text-right ${s.pointDiff > 0 ? 'text-green-600' : s.pointDiff < 0 ? 'text-red-400' : 'text-gray-400'}`}>
                       {s.pointDiff > 0 ? '+' : ''}{s.pointDiff}
                     </span>
