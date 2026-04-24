@@ -225,10 +225,17 @@ export default function GroupView({ group, allGroups, format, setCount, players 
                 <th className="px-4 py-3 text-left text-gray-500 font-medium w-8">#</th>
                 <th className="px-4 py-3 text-left text-gray-500 font-medium">Team</th>
                 <th className="px-4 py-3 text-center text-gray-500 font-medium">MP</th>
-                <th className="px-4 py-3 text-center text-gray-500 font-medium">W</th>
-                <th className="px-4 py-3 text-center text-gray-500 font-medium">L</th>
-                {format === 'sets' && (
-                  <th className="px-4 py-3 text-center text-gray-500 font-medium">Sets W-L</th>
+                {format === 'sets' ? (
+                  <>
+                    <th className="px-4 py-3 text-center text-gray-500 font-medium">W</th>
+                    <th className="px-4 py-3 text-center text-gray-500 font-medium">L</th>
+                    <th className="px-4 py-3 text-center text-gray-500 font-medium">Sets W-L</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="px-4 py-3 text-center text-gray-500 font-medium">GW</th>
+                    <th className="px-4 py-3 text-center text-gray-500 font-medium">GL</th>
+                  </>
                 )}
                 <th className="px-4 py-3 text-center text-gray-500 font-medium">Pts +/-</th>
                 <th className="px-4 py-3 text-center text-gray-500 font-medium">Diff</th>
@@ -247,10 +254,17 @@ export default function GroupView({ group, allGroups, format, setCount, players 
                     )}
                   </td>
                   <td className="px-4 py-3 text-center text-gray-600">{s.matchesPlayed}</td>
-                  <td className="px-4 py-3 text-center font-medium text-green-600">{s.matchWins}</td>
-                  <td className="px-4 py-3 text-center text-red-400">{s.matchLosses}</td>
-                  {format === 'sets' && (
-                    <td className="px-4 py-3 text-center text-gray-600">{s.setWins}-{s.setLosses}</td>
+                  {format === 'sets' ? (
+                    <>
+                      <td className="px-4 py-3 text-center font-medium text-green-600">{s.matchWins}</td>
+                      <td className="px-4 py-3 text-center text-red-400">{s.matchLosses}</td>
+                      <td className="px-4 py-3 text-center text-gray-600">{s.setWins}-{s.setLosses}</td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3 text-center font-medium text-green-600">{s.gameWins}</td>
+                      <td className="px-4 py-3 text-center text-red-400">{s.gameLosses}</td>
+                    </>
                   )}
                   <td className="px-4 py-3 text-center text-gray-600">{s.pointsFor}-{s.pointsAgainst}</td>
                   <td className={`px-4 py-3 text-center font-medium ${s.pointDiff > 0 ? 'text-green-600' : s.pointDiff < 0 ? 'text-red-400' : 'text-gray-400'}`}>
