@@ -147,14 +147,17 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
       ? (picker.field === 'p1' ? g.teams[picker.ti]?.p1 : g.teams[picker.ti]?.p2) ?? ''
       : '';
 
-    // Fix issue 2: collect all assigned player names in current group except the current picker slot
+    // Collect all assigned player names across ALL groups, except the current picker slot
     const usedNames = new Set(
-      g.teams.flatMap((t, ti) => {
-        const names: string[] = [];
-        if (!(picker?.ti === ti && picker?.field === 'p1') && t.p1) names.push(t.p1);
-        if (!(picker?.ti === ti && picker?.field === 'p2') && t.p2) names.push(t.p2);
-        return names;
-      })
+      groups.flatMap((grp, gi) =>
+        grp.teams.flatMap((t, ti) => {
+          const isCurrent = gi === currentGroup && ti === (picker?.ti ?? -1);
+          const names: string[] = [];
+          if (!(isCurrent && picker?.field === 'p1') && t.p1) names.push(t.p1);
+          if (!(isCurrent && picker?.field === 'p2') && t.p2) names.push(t.p2);
+          return names;
+        })
+      )
     );
 
     return (

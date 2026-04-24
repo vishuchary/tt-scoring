@@ -349,6 +349,7 @@ export default function TournamentView({ tournament, players, onUpdate, onDelete
         {selectedGroup && (
           <GroupView
             group={selectedGroup}
+            allGroups={level?.groups}
             format={tournament.format}
             players={players}
             onUpdate={g => handleGroupUpdate(viewLevel, g)}

@@ -6,6 +6,7 @@ import PlayerPicker from './PlayerPicker';
 
 interface Props {
   group: Group;
+  allGroups?: Group[];
   format: MatchFormat;
   players?: Player[];
   onUpdate: (g: Group) => void;
@@ -59,7 +60,7 @@ function InlineInput({
   );
 }
 
-export default function GroupView({ group, format, players = [], onUpdate }: Props) {
+export default function GroupView({ group, allGroups, format, players = [], onUpdate }: Props) {
   const [tab, setTab] = useState<Tab>('matches');
   const [editMatch, setEditMatch] = useState<Match | null>(null);
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
@@ -98,10 +99,17 @@ export default function GroupView({ group, format, players = [], onUpdate }: Pro
   const pickerCurrentValue = pickerTarget
     ? group.teams.find(t => t.id === pickerTarget.teamId)?.players[pickerTarget.playerIdx] ?? ''
     : '';
+  // Exclude players used anywhere in the level (all groups), except the current slot
   const pickerUsedNames = pickerTarget
-    ? new Set(group.teams.flatMap(t =>
-        t.players.filter((_, pi) => !(t.id === pickerTarget.teamId && pi === pickerTarget.playerIdx))
-      ))
+    ? new Set(
+        (allGroups ?? [group]).flatMap(grp =>
+          grp.teams.flatMap(t =>
+            t.players.filter((_, pi) =>
+              !(grp.id === group.id && t.id === pickerTarget.teamId && pi === pickerTarget.playerIdx)
+            )
+          )
+        )
+      )
     : new Set<string>();
 
   return (
