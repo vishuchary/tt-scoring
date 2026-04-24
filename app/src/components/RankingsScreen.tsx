@@ -3,66 +3,44 @@ import { computePlayerRankings, type PlayerRanking } from '../rankings';
 
 interface Props {
   tournaments: Tournament[];
+  isAdmin?: boolean;
   onBack: () => void;
 }
 
-const TOP_STYLE = [
-  {
-    border: 'border-yellow-400',
-    bg: 'bg-gradient-to-r from-yellow-50 to-amber-50',
-    badge: 'bg-yellow-400 text-white',
-    pts: 'text-yellow-600',
-    bar: 'bg-yellow-400',
-    icon: '👑',
-    label: '1st',
-  },
-  {
-    border: 'border-gray-300',
-    bg: 'bg-gradient-to-r from-gray-50 to-slate-50',
-    badge: 'bg-gray-400 text-white',
-    pts: 'text-gray-600',
-    bar: 'bg-gray-400',
-    icon: '🥈',
-    label: '2nd',
-  },
-  {
-    border: 'border-orange-300',
-    bg: 'bg-gradient-to-r from-orange-50 to-amber-50',
-    badge: 'bg-orange-400 text-white',
-    pts: 'text-orange-600',
-    bar: 'bg-orange-400',
-    icon: '🥉',
-    label: '3rd',
-  },
-];
+const PODIUM_STYLE: Record<number, { border: string; bg: string; badge: string; pts: string; bar: string; icon: string }> = {
+  1: { border: 'border-yellow-400', bg: 'bg-gradient-to-r from-yellow-50 to-amber-50', badge: 'bg-yellow-400 text-white', pts: 'text-yellow-600', bar: 'bg-yellow-400', icon: '👑' },
+  2: { border: 'border-gray-300',   bg: 'bg-gradient-to-r from-gray-50 to-slate-50',   badge: 'bg-gray-400 text-white',   pts: 'text-gray-600',   bar: 'bg-gray-400',   icon: '🥈' },
+  3: { border: 'border-orange-300', bg: 'bg-gradient-to-r from-orange-50 to-amber-50', badge: 'bg-orange-400 text-white', pts: 'text-orange-600', bar: 'bg-orange-400', icon: '🥉' },
+};
+
+interface RankedPlayer { r: PlayerRanking; rank: number }
+
+function assignRanks(rankings: PlayerRanking[]): RankedPlayer[] {
+  return rankings.map((r) => {
+    const rank = rankings.findIndex(x => x.points === r.points) + 1;
+    return { r, rank };
+  });
+}
 
 function ScoreBreakdown({ r }: { r: PlayerRanking }) {
   return (
     <div className="flex gap-1.5 mt-1 flex-wrap">
       {r.participationPts > 0 && (
-        <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md text-xs font-medium" title="Level participation">
-          P +{r.participationPts}
-        </span>
+        <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md text-xs font-medium">P +{r.participationPts}</span>
       )}
       {r.gameWinPts > 0 && (
-        <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded-md text-xs font-medium" title="Game wins">
-          G +{r.gameWinPts}
-        </span>
+        <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded-md text-xs font-medium">G +{r.gameWinPts}</span>
       )}
       {r.bonusPts > 0 && (
-        <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-md text-xs font-medium" title="Winner/Runner-up bonus">
-          B +{r.bonusPts}
-        </span>
+        <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-md text-xs font-medium">B +{r.bonusPts}</span>
       )}
-      <span className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-md text-xs" title="Games won">
-        {r.gameWins}G · {r.matchesPlayed}MP
-      </span>
+      <span className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-md text-xs">{r.gameWins}G · {r.matchesPlayed}MP</span>
     </div>
   );
 }
 
-function TopCard({ r, rank, maxPts }: { r: PlayerRanking; rank: number; maxPts: number }) {
-  const s = TOP_STYLE[rank];
+function PodiumCard({ r, rank, maxPts, isAdmin }: { r: PlayerRanking; rank: number; maxPts: number; isAdmin?: boolean }) {
+  const s = PODIUM_STYLE[rank];
   const pct = maxPts > 0 ? Math.max(4, (r.points / maxPts) * 100) : 0;
 
   return (
@@ -74,11 +52,9 @@ function TopCard({ r, rank, maxPts }: { r: PlayerRanking; rank: number; maxPts: 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <p className="font-bold text-gray-900 text-base truncate">{r.name}</p>
-            <span className={`font-extrabold text-xl shrink-0 ${s.pts}`}>
-              {r.points} pts
-            </span>
+            <span className={`font-extrabold text-xl shrink-0 ${s.pts}`}>{r.points} pts</span>
           </div>
-          <ScoreBreakdown r={r} />
+          {isAdmin && <ScoreBreakdown r={r} />}
           <div className="mt-2 h-1.5 bg-black/10 rounded-full overflow-hidden">
             <div className={`h-full ${s.bar} rounded-full transition-all`} style={{ width: `${pct}%` }} />
           </div>
@@ -88,7 +64,7 @@ function TopCard({ r, rank, maxPts }: { r: PlayerRanking; rank: number; maxPts: 
   );
 }
 
-function RowCard({ r, rank, maxPts }: { r: PlayerRanking; rank: number; maxPts: number }) {
+function RowCard({ r, rank, maxPts, isAdmin }: { r: PlayerRanking; rank: number; maxPts: number; isAdmin?: boolean }) {
   const pct = maxPts > 0 ? Math.max(2, (r.points / maxPts) * 100) : 0;
 
   return (
@@ -97,11 +73,9 @@ function RowCard({ r, rank, maxPts }: { r: PlayerRanking; rank: number; maxPts: 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <p className="font-semibold text-gray-900 text-sm truncate">{r.name}</p>
-          <span className="font-bold text-sm shrink-0 text-gray-800">
-            {r.points} pts
-          </span>
+          <span className="font-bold text-sm shrink-0 text-gray-800">{r.points} pts</span>
         </div>
-        <ScoreBreakdown r={r} />
+        {isAdmin && <ScoreBreakdown r={r} />}
         <div className="mt-1.5 h-1 bg-gray-100 rounded-full overflow-hidden">
           <div className="h-full bg-blue-400 rounded-full" style={{ width: `${pct}%` }} />
         </div>
@@ -110,11 +84,15 @@ function RowCard({ r, rank, maxPts }: { r: PlayerRanking; rank: number; maxPts: 
   );
 }
 
-export default function RankingsScreen({ tournaments, onBack }: Props) {
+export default function RankingsScreen({ tournaments, isAdmin, onBack }: Props) {
   const rankings = computePlayerRankings(tournaments);
-  const top3 = rankings.slice(0, 3);
-  const rest = rankings.slice(3);
+  const ranked = assignRanks(rankings);
+  const podium = ranked.filter(({ rank }) => rank <= 3);
+  const rest = ranked.filter(({ rank }) => rank > 3);
   const maxPts = rankings[0]?.points ?? 1;
+
+  // Within podium, group ties together visually (same rank = same card style, listed consecutively)
+  const podiumRanks = [1, 2, 3] as const;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -124,12 +102,9 @@ export default function RankingsScreen({ tournaments, onBack }: Props) {
           <button onClick={onBack} className="text-gray-500 hover:text-gray-700 text-sm shrink-0">← Back</button>
           <h1 className="text-xl font-bold text-gray-900">Player Rankings</h1>
         </div>
-        <p className="text-xs text-gray-400 mb-2 ml-10">Score = P (participation) + G (game wins) + B (bonus)</p>
-        <div className="flex gap-3 ml-10 mb-6 text-xs text-gray-400">
-          <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md font-medium">P +2/level</span>
-          <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded-md font-medium">G +2/game win</span>
-          <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-md font-medium">B +2 winner · +1 runner-up</span>
-        </div>
+        <p className="text-xs text-gray-400 mb-6 ml-10">
+          Same score = same rank · next rank skips accordingly
+        </p>
 
         {rankings.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
@@ -139,10 +114,26 @@ export default function RankingsScreen({ tournaments, onBack }: Props) {
           </div>
         ) : (
           <>
-            <div className="space-y-3 mb-5">
-              {top3.map((r, i) => (
-                <TopCard key={r.name} r={r} rank={i} maxPts={maxPts} />
-              ))}
+            {/* Podium: ranks 1–3, grouped by rank with same styling for ties */}
+            <div className="space-y-2 mb-5">
+              {podiumRanks.map(rank => {
+                const group = podium.filter(p => p.rank === rank);
+                if (group.length === 0) return null;
+                return (
+                  <div key={rank}>
+                    {group.length > 1 && (
+                      <p className="text-xs text-gray-400 font-medium mb-1 ml-1">
+                        {rank === 1 ? '🏅' : rank === 2 ? '🥈' : '🥉'} Tied — Rank {rank}
+                      </p>
+                    )}
+                    <div className="space-y-2">
+                      {group.map(({ r }) => (
+                        <PodiumCard key={r.name} r={r} rank={rank} maxPts={maxPts} isAdmin={isAdmin} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {rest.length > 0 && (
@@ -153,13 +144,19 @@ export default function RankingsScreen({ tournaments, onBack }: Props) {
                   <div className="flex-1 h-px bg-gray-200" />
                 </div>
                 <div className="space-y-2">
-                  {rest.map((r, i) => (
-                    <RowCard key={r.name} r={r} rank={i + 4} maxPts={maxPts} />
+                  {rest.map(({ r, rank }) => (
+                    <RowCard key={r.name} r={r} rank={rank} maxPts={maxPts} isAdmin={isAdmin} />
                   ))}
                 </div>
               </>
             )}
           </>
+        )}
+
+        {isAdmin && (
+          <p className="text-xs text-center text-gray-400 mt-6">
+            P = participation · G = game wins · B = winner/runner-up bonus
+          </p>
         )}
       </div>
     </div>

@@ -125,7 +125,7 @@ export default function App() {
   }
 
   if (view.type === 'rankings') {
-    return <RankingsScreen tournaments={tournaments} onBack={() => setView({ type: 'home' })} />;
+    return <RankingsScreen tournaments={tournaments} isAdmin={isAdmin} onBack={() => setView({ type: 'home' })} />;
   }
 
   if (view.type === 'tournament') {
