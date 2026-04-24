@@ -35,6 +35,7 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
   const [name, setName] = useState(`Tournament_${seq}`);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [format, setFormat] = useState<MatchFormat>('sets');
+  const [setCount, setSetCount] = useState(3); // sets: odd (1,3,5,7,9); games: any
   const [matchType, setMatchType] = useState<'singles' | 'doubles'>('singles');
   const [selected, setSelected] = useState<string[]>([]);
   const [groupCount, setGroupCount] = useState(1);
@@ -118,7 +119,7 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
       return { id: uid(), name: gd.name, teams, matches };
     });
     const level1: TournamentLevel = { id: uid(), name: 'Level 1', groups: builtGroups };
-    onCreate({ id: uid(), name: name.trim() || `Tournament_${seq}`, format, matchType, levels: [level1], createdAt: Date.now(), date });
+    onCreate({ id: uid(), name: name.trim() || `Tournament_${seq}`, format, setCount, matchType, levels: [level1], createdAt: Date.now(), date });
   }
 
   // ── Step 1: Meta ─────────────────────────────────────────────────────────
@@ -170,15 +171,32 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Match Format</label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 mb-3">
                 {(['sets', 'games'] as MatchFormat[]).map(f => (
-                  <button key={f} onClick={() => setFormat(f)}
+                  <button key={f} onClick={() => { setFormat(f); setSetCount(f === 'sets' ? 3 : 2); }}
                     className={`p-3 rounded-lg border-2 text-left transition-colors ${format === f ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-200'}`}
                   >
-                    <div className="font-medium text-gray-900 text-sm">{f === 'sets' ? 'Best of 3 Sets' : '2 Games'}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{f === 'sets' ? 'Most sets wins the match' : 'Most game wins ranks higher'}</div>
+                    <div className="font-medium text-gray-900 text-sm">{f === 'sets' ? 'Sets (best of)' : 'Games (play all)'}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{f === 'sets' ? 'Winner = most sets won' : 'Winner = most games won'}</div>
                   </button>
                 ))}
+              </div>
+              {/* Count picker */}
+              <div>
+                <p className="text-xs text-gray-500 mb-2">
+                  {format === 'sets' ? 'Number of sets (odd):' : 'Number of games:'}
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {(format === 'sets' ? [1, 3, 5, 7, 9] : [1, 2, 3, 4, 5, 6]).map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setSetCount(n)}
+                      className={`w-10 h-10 rounded-lg border-2 font-semibold text-sm transition-colors ${setCount === n ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-700 hover:border-blue-200'}`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

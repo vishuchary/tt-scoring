@@ -8,6 +8,7 @@ interface Props {
   group: Group;
   allGroups?: Group[];
   format: MatchFormat;
+  setCount: number;
   players?: Player[];
   isLocked?: boolean;
   onUpdate: (g: Group) => void;
@@ -61,7 +62,7 @@ function InlineInput({
   );
 }
 
-export default function GroupView({ group, allGroups, format, players = [], isLocked = false, onUpdate }: Props) {
+export default function GroupView({ group, allGroups, format, setCount, players = [], isLocked = false, onUpdate }: Props) {
   const [tab, setTab] = useState<Tab>('matches');
   const [editMatch, setEditMatch] = useState<Match | null>(null);
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
@@ -134,6 +135,7 @@ export default function GroupView({ group, allGroups, format, players = [], isLo
           team1={teamMap[editMatch.team1Id]}
           team2={teamMap[editMatch.team2Id]}
           format={format}
+          setCount={setCount}
           readOnly={isLocked}
           onSave={handleMatchSave}
           onCancel={() => setEditMatch(null)}

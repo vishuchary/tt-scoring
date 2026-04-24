@@ -7,12 +7,11 @@ interface Props {
   team1: Team;
   team2: Team;
   format: MatchFormat;
+  setCount: number;
   readOnly?: boolean;
   onSave: (match: Match) => void;
   onCancel: () => void;
 }
-
-const GAME_COUNT = { sets: 3, games: 2 } as const;
 
 function gameWinner(s1: number, s2: number): 'team1' | 'team2' | null {
   if (s1 >= 11 && s1 - s2 >= 2) return 'team1';
@@ -20,9 +19,8 @@ function gameWinner(s1: number, s2: number): 'team1' | 'team2' | null {
   return null;
 }
 
-export default function MatchEntry({ match, team1, team2, format, readOnly = false, onSave, onCancel }: Props) {
-  const count = GAME_COUNT[format];
-  const initialGames: Game[] = Array.from({ length: count }, (_, i) => ({
+export default function MatchEntry({ match, team1, team2, format, setCount, readOnly = false, onSave, onCancel }: Props) {
+  const initialGames: Game[] = Array.from({ length: setCount }, (_, i) => ({
     team1Score: match.games[i]?.team1Score ?? 0,
     team2Score: match.games[i]?.team2Score ?? 0,
   }));
@@ -33,36 +31,67 @@ export default function MatchEntry({ match, team1, team2, format, readOnly = fal
     setGames(prev => prev.map((g, i) => i !== gameIdx ? g : { ...g, [side]: n }));
   }
 
+  // For sets: a set is "active" only if the winner hasn't been decided yet
+  const winsNeeded = Math.ceil(setCount / 2);
+  function isActive(rowIdx: number): boolean {
+    if (format !== 'sets') return true;
+    let t1 = 0, t2 = 0;
+    for (let j = 0; j < rowIdx; j++) {
+      const w = gameWinner(games[j].team1Score, games[j].team2Score);
+      if (w === 'team1') t1++;
+      else if (w === 'team2') t2++;
+    }
+    return t1 < winsNeeded && t2 < winsNeeded;
+  }
+
   function getWinner(): string | null {
-    let t1wins = 0, t2wins = 0;
+    let t1 = 0, t2 = 0;
     for (const g of games) {
       const w = gameWinner(g.team1Score, g.team2Score);
-      if (w === 'team1') t1wins++;
-      else if (w === 'team2') t2wins++;
+      if (w === 'team1') t1++;
+      else if (w === 'team2') t2++;
     }
-    if (t1wins > t2wins) return teamDisplayName(team1);
-    if (t2wins > t1wins) return teamDisplayName(team2);
+    if (t1 > t2) return teamDisplayName(team1);
+    if (t2 > t1) return teamDisplayName(team2);
     return null;
   }
 
+  function handleSave() {
+    let gamesToSave = games;
+    if (format === 'sets') {
+      // Trim trailing unplayed sets (0-0) beyond the deciding set
+      let t1 = 0, t2 = 0;
+      const cutAt = games.findIndex(g => {
+        const w = gameWinner(g.team1Score, g.team2Score);
+        if (w === 'team1') t1++;
+        else if (w === 'team2') t2++;
+        return t1 >= winsNeeded || t2 >= winsNeeded;
+      });
+      if (cutAt >= 0) gamesToSave = games.slice(0, cutAt + 1);
+    }
+    onSave({ ...match, games: gamesToSave, completed: true });
+  }
+
   const winner = getWinner();
+  const formatLabel = format === 'sets'
+    ? `Best of ${setCount} Set${setCount !== 1 ? 's' : ''}`
+    : `${setCount} Game${setCount !== 1 ? 's' : ''}`;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end sm:justify-center sm:items-center sm:p-4">
-      {/* Bottom sheet on mobile, centered modal on desktop */}
       <div className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-xl flex flex-col max-h-[90vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
           <div>
             <h2 className="text-lg font-bold text-gray-900">{readOnly ? 'Match Scores' : 'Enter Scores'}</h2>
-            <p className="text-sm text-gray-500">{format === 'sets' ? 'Best of 3 Sets' : '2 Games'}</p>
+            <p className="text-sm text-gray-500">{formatLabel}</p>
           </div>
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 text-2xl leading-none px-1">×</button>
         </div>
 
         {/* Content */}
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 overflow-y-auto">
           {/* Team name headers */}
           <div className="grid grid-cols-3 gap-2 text-sm font-semibold text-gray-700">
             <div className="text-center truncate">{teamDisplayName(team1)}</div>
@@ -72,22 +101,23 @@ export default function MatchEntry({ match, team1, team2, format, readOnly = fal
 
           {/* Score rows */}
           {games.map((g, i) => {
-            const gw = gameWinner(g.team1Score, g.team2Score);
+            const active = isActive(i);
+            const gw = active ? gameWinner(g.team1Score, g.team2Score) : null;
             const t1w = gw === 'team1';
             const t2w = gw === 'team2';
             return (
-              <div key={i} className="grid grid-cols-3 gap-3 items-center">
+              <div key={i} className={`grid grid-cols-3 gap-3 items-center transition-opacity ${!active ? 'opacity-30' : ''}`}>
                 <input
                   type="number"
                   inputMode="numeric"
                   min={0}
-                  readOnly={readOnly}
+                  readOnly={readOnly || !active}
                   className={`text-center border-2 rounded-xl py-3 text-2xl font-bold outline-none transition-colors ${
                     t1w ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 focus:border-blue-400'
-                  } ${readOnly ? 'cursor-default' : ''}`}
+                  } ${(readOnly || !active) ? 'cursor-default' : ''}`}
                   value={g.team1Score}
-                  onFocus={e => !readOnly && e.target.select()}
-                  onChange={e => !readOnly && setScore(i, 'team1Score', e.target.value)}
+                  onFocus={e => !readOnly && active && e.target.select()}
+                  onChange={e => !readOnly && active && setScore(i, 'team1Score', e.target.value)}
                 />
                 <div className="text-center text-gray-400 text-sm font-medium">
                   {format === 'sets' ? `Set ${i + 1}` : `Game ${i + 1}`}
@@ -96,13 +126,13 @@ export default function MatchEntry({ match, team1, team2, format, readOnly = fal
                   type="number"
                   inputMode="numeric"
                   min={0}
-                  readOnly={readOnly}
+                  readOnly={readOnly || !active}
                   className={`text-center border-2 rounded-xl py-3 text-2xl font-bold outline-none transition-colors ${
                     t2w ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 focus:border-blue-400'
-                  } ${readOnly ? 'cursor-default' : ''}`}
+                  } ${(readOnly || !active) ? 'cursor-default' : ''}`}
                   value={g.team2Score}
-                  onFocus={e => !readOnly && e.target.select()}
-                  onChange={e => !readOnly && setScore(i, 'team2Score', e.target.value)}
+                  onFocus={e => !readOnly && active && e.target.select()}
+                  onChange={e => !readOnly && active && setScore(i, 'team2Score', e.target.value)}
                 />
               </div>
             );
@@ -137,7 +167,7 @@ export default function MatchEntry({ match, team1, team2, format, readOnly = fal
               </button>
             )}
             <button
-              onClick={() => onSave({ ...match, games, completed: true })}
+              onClick={handleSave}
               className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold text-lg hover:bg-blue-700 transition-colors"
             >
               Save Score

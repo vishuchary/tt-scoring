@@ -46,6 +46,7 @@ export interface Tournament {
   id: string;
   name: string;
   format: MatchFormat;
+  setCount?: number;   // sets format: odd number (1,3,5…); games format: any number; default 3/2
   matchType?: 'singles' | 'doubles';
   levels: TournamentLevel[];
   createdAt: number;

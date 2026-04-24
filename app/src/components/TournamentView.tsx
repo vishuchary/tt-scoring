@@ -300,7 +300,9 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
               )}
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                 <span className="text-sm text-gray-500">
-                  {tournament.format === 'sets' ? 'Best of 3 Sets' : '2 Games'}
+                  {tournament.format === 'sets'
+                    ? `Best of ${tournament.setCount ?? 3} Set${(tournament.setCount ?? 3) !== 1 ? 's' : ''}`
+                    : `${tournament.setCount ?? 2} Game${(tournament.setCount ?? 2) !== 1 ? 's' : ''}`}
                 </span>
                 <span className="text-gray-300">·</span>
                 {isLocked ? (
@@ -391,6 +393,7 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
             group={selectedGroup}
             allGroups={level?.groups}
             format={tournament.format}
+            setCount={tournament.setCount ?? (tournament.format === 'sets' ? 3 : 2)}
             players={players}
             isLocked={isLocked}
             onUpdate={g => handleGroupUpdate(viewLevel, g)}
@@ -406,6 +409,14 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
                 <p className="text-5xl mb-3">🏆</p>
                 <p className="text-2xl font-bold text-yellow-800">{teamDisplayName(winner)}</p>
                 <p className="text-sm text-yellow-700 mt-1">Tournament Champion!</p>
+                {isAdmin && (
+                  <button
+                    onClick={() => setShowAdvance(true)}
+                    className="mt-4 bg-blue-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    + Setup Level {tournament.levels.length + 1}
+                  </button>
+                )}
               </div>
             ) : (
               <div className="flex items-center justify-between flex-wrap gap-3">

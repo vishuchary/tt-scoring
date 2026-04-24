@@ -95,9 +95,11 @@ export function computeStandings(group: Group, format: MatchFormat): TeamStats[]
   const standings = Array.from(statsMap.values());
 
   standings.sort((a, b) => {
-    // Primary: match wins
-    if (b.matchWins !== a.matchWins) return b.matchWins - a.matchWins;
-    // Tiebreaker: point differential
+    // Sets format: rank by match wins. Games format: rank by total game wins.
+    const primary = format === 'sets'
+      ? b.matchWins - a.matchWins
+      : b.gameWins - a.gameWins;
+    if (primary !== 0) return primary;
     return b.pointDiff - a.pointDiff;
   });
 
@@ -108,8 +110,12 @@ export function computeStandings(group: Group, format: MatchFormat): TeamStats[]
 export function computeCrossGroupRankings(groups: Group[], format: MatchFormat): TeamStats[] {
   const all = groups.flatMap(g => computeStandings(g, format));
   all.sort((a, b) => {
-    if (b.matchWins !== a.matchWins) return b.matchWins - a.matchWins;
-    if (b.setWins !== a.setWins) return b.setWins - a.setWins;
+    if (format === 'sets') {
+      if (b.matchWins !== a.matchWins) return b.matchWins - a.matchWins;
+      if (b.setWins !== a.setWins) return b.setWins - a.setWins;
+    } else {
+      if (b.gameWins !== a.gameWins) return b.gameWins - a.gameWins;
+    }
     return b.pointDiff - a.pointDiff;
   });
   all.forEach((s, i) => { s.rank = i + 1; });
