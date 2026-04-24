@@ -214,21 +214,21 @@
     },
     "Giri": {
       "bonusPts": 2,
-      "gameWinPts": 52,
-      "gameWins": 26,
+      "gameWinPts": 50,
+      "gameWins": 25,
       "matchesPlayed": 29,
       "name": "Giri",
       "participationPts": 14,
-      "points": 68
+      "points": 66
     },
     "Harsha": {
       "bonusPts": 0,
-      "gameWinPts": 76,
-      "gameWins": 38,
+      "gameWinPts": 78,
+      "gameWins": 39,
       "matchesPlayed": 31,
       "name": "Harsha",
       "participationPts": 14,
-      "points": 90
+      "points": 92
     },
     "Hemanth": {
       "bonusPts": 1,
@@ -304,12 +304,12 @@
     },
     "Prajwal": {
       "bonusPts": 0,
-      "gameWinPts": 54,
-      "gameWins": 27,
+      "gameWinPts": 52,
+      "gameWins": 26,
       "matchesPlayed": 29,
       "name": "Prajwal",
       "participationPts": 12,
-      "points": 66
+      "points": 64
     },
     "Prasad": {
       "bonusPts": 4,
@@ -376,12 +376,12 @@
     },
     "Sharma": {
       "bonusPts": 1,
-      "gameWinPts": 64,
-      "gameWins": 32,
+      "gameWinPts": 66,
+      "gameWins": 33,
       "matchesPlayed": 29,
       "name": "Sharma",
       "participationPts": 14,
-      "points": 79
+      "points": 81
     },
     "Shiva Meda": {
       "bonusPts": 3,
@@ -995,8 +995,8 @@
                   "completed": true,
                   "games": [
                     {
-                      "team1Score": 11,
-                      "team2Score": 9
+                      "team1Score": 9,
+                      "team2Score": 11
                     },
                     {
                       "team1Score": 9,
