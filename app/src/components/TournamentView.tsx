@@ -364,8 +364,11 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
     level?.groups.find(g => g.id === selectedGroupId) ?? level?.groups[0] ?? null;
 
   let winner: Team | null = null;
+  let runnerUp: Team | null = null;
   if (isFinals && levelComplete && level) {
-    winner = computeCrossGroupRankings(level.groups, tournament.format)[0]?.team ?? null;
+    const finalRankings = computeCrossGroupRankings(level.groups, tournament.format);
+    winner = finalRankings[0]?.team ?? null;
+    runnerUp = finalRankings[1]?.team ?? null;
   }
 
   return (
@@ -582,17 +585,39 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
             isFinals ? 'bg-yellow-50 border-yellow-200' : 'bg-green-50 border-green-200'
           }`}>
             {isFinals && winner ? (
-              <div className="text-center py-2">
-                <p className="text-5xl mb-3">🏆</p>
-                <p className="text-2xl font-bold text-yellow-800">{teamDisplayName(winner)}</p>
-                <p className="text-sm text-yellow-700 mt-1">Tournament Champion!</p>
+              <div className="text-center py-4">
+                <p className="text-6xl mb-3">🏆</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-yellow-600 mb-1">
+                  {tournament.name} Champions
+                </p>
+                <p className="text-3xl font-bold text-yellow-900 mb-1">
+                  {winner.players.filter(Boolean).join(' & ')}
+                </p>
+                {winner.players.length > 1 && (
+                  <p className="text-sm text-yellow-700 mb-4">
+                    {teamDisplayName(winner)}
+                  </p>
+                )}
+                {runnerUp && (
+                  <div className="mt-3 inline-flex items-center gap-2 bg-yellow-100 border border-yellow-200 rounded-xl px-4 py-2">
+                    <span className="text-lg">🥈</span>
+                    <div className="text-left">
+                      <p className="text-xs text-yellow-700 font-medium">Runner-up</p>
+                      <p className="text-sm font-semibold text-yellow-900">
+                        {runnerUp.players.filter(Boolean).join(' & ')}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {isAdmin && (
-                  <button
-                    onClick={() => setShowAdvance(true)}
-                    className="mt-4 bg-blue-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
-                  >
-                    + Setup Level {tournament.levels.length + 1}
-                  </button>
+                  <div className="mt-5">
+                    <button
+                      onClick={() => setShowAdvance(true)}
+                      className="bg-blue-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
+                    >
+                      + Setup Level {tournament.levels.length + 1}
+                    </button>
+                  </div>
                 )}
               </div>
             ) : (
