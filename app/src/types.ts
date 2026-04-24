@@ -49,6 +49,7 @@ export interface Tournament {
   matchType?: 'singles' | 'doubles';
   levels: TournamentLevel[];
   createdAt: number;
+  date?: string; // YYYY-MM-DD, the day the tournament is played
 }
 
 export interface TeamStats {

@@ -298,9 +298,26 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
                   {isLocked && <span className="text-lg">🔒</span>}
                 </h1>
               )}
-              <p className="text-sm text-gray-500">
-                {tournament.format === 'sets' ? 'Best of 3 Sets' : '2 Games'} format
-              </p>
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                <span className="text-sm text-gray-500">
+                  {tournament.format === 'sets' ? 'Best of 3 Sets' : '2 Games'}
+                </span>
+                <span className="text-gray-300">·</span>
+                {isLocked ? (
+                  <span className="text-sm text-gray-500">
+                    {tournament.date
+                      ? new Date(tournament.date + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                      : new Date(tournament.createdAt).toLocaleDateString()}
+                  </span>
+                ) : (
+                  <input
+                    type="date"
+                    value={tournament.date ?? new Date(tournament.createdAt).toISOString().slice(0, 10)}
+                    onChange={e => onUpdate({ ...tournament, date: e.target.value })}
+                    className="text-sm text-gray-500 border-0 outline-none bg-transparent cursor-pointer hover:text-blue-600 transition-colors"
+                  />
+                )}
+              </div>
             </div>
           </div>
           {isAdmin && (

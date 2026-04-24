@@ -56,7 +56,7 @@ function TournamentCard({ t, onClick }: { t: Tournament; onClick: () => void }) 
           <p className="text-sm text-gray-500">
             {levelCount > 1 ? `${levelCount} levels` : `${level1Groups} group${level1Groups !== 1 ? 's' : ''}`} &middot;{' '}
             {t.format === 'sets' ? 'Best of 3 Sets' : '2 Games'} &middot;{' '}
-            {new Date(t.createdAt).toLocaleDateString()}
+            {t.date ? new Date(t.date + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : new Date(t.createdAt).toLocaleDateString()}
           </p>
           {allMatches.length > 0 && (
             <p className="text-xs text-gray-400 mt-1">

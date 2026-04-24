@@ -33,6 +33,7 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
   const [step, setStep] = useState<Step>('meta');
   const [mode, setMode] = useState<Mode>('random');
   const [name, setName] = useState(`Tournament_${seq}`);
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [format, setFormat] = useState<MatchFormat>('sets');
   const [matchType, setMatchType] = useState<'singles' | 'doubles'>('singles');
   const [selected, setSelected] = useState<string[]>([]);
@@ -117,7 +118,7 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
       return { id: uid(), name: gd.name, teams, matches };
     });
     const level1: TournamentLevel = { id: uid(), name: 'Level 1', groups: builtGroups };
-    onCreate({ id: uid(), name: name.trim() || `Tournament_${seq}`, format, matchType, levels: [level1], createdAt: Date.now() });
+    onCreate({ id: uid(), name: name.trim() || `Tournament_${seq}`, format, matchType, levels: [level1], createdAt: Date.now(), date });
   }
 
   // ── Step 1: Meta ─────────────────────────────────────────────────────────
@@ -136,6 +137,16 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-blue-400"
                 value={name} placeholder="e.g. Spring 2025"
                 onChange={e => setName(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+              <input
+                type="date"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-blue-400"
+                value={date}
+                onChange={e => setDate(e.target.value)}
               />
             </div>
 
