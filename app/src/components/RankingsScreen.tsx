@@ -36,9 +36,34 @@ const TOP_STYLE = [
   },
 ];
 
+function ScoreBreakdown({ r }: { r: PlayerRanking }) {
+  return (
+    <div className="flex gap-1.5 mt-1 flex-wrap">
+      {r.participationPts > 0 && (
+        <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md text-xs font-medium" title="Level participation">
+          P +{r.participationPts}
+        </span>
+      )}
+      {r.gameWinPts > 0 && (
+        <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded-md text-xs font-medium" title="Game wins">
+          G +{r.gameWinPts}
+        </span>
+      )}
+      {r.bonusPts > 0 && (
+        <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-md text-xs font-medium" title="Winner/Runner-up bonus">
+          B +{r.bonusPts}
+        </span>
+      )}
+      <span className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-md text-xs" title="Games won">
+        {r.gameWins}G · {r.matchesPlayed}MP
+      </span>
+    </div>
+  );
+}
+
 function TopCard({ r, rank, maxPts }: { r: PlayerRanking; rank: number; maxPts: number }) {
   const s = TOP_STYLE[rank];
-  const pct = maxPts > 0 ? Math.max(0, (r.points / maxPts) * 100) : 0;
+  const pct = maxPts > 0 ? Math.max(4, (r.points / maxPts) * 100) : 0;
 
   return (
     <div className={`rounded-2xl border-2 ${s.border} ${s.bg} p-4 shadow-sm`}>
@@ -50,16 +75,10 @@ function TopCard({ r, rank, maxPts }: { r: PlayerRanking; rank: number; maxPts: 
           <div className="flex items-center justify-between gap-2">
             <p className="font-bold text-gray-900 text-base truncate">{r.name}</p>
             <span className={`font-extrabold text-xl shrink-0 ${s.pts}`}>
-              {r.points > 0 ? '+' : ''}{r.points}
+              {r.points} pts
             </span>
           </div>
-          <div className="flex items-center gap-3 mt-1">
-            <div className="flex gap-1.5 text-xs">
-              <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded-md font-medium">{r.wins}W</span>
-              <span className="bg-red-100 text-red-500 px-1.5 py-0.5 rounded-md font-medium">{r.losses}L</span>
-              <span className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-md">{r.matchesPlayed}MP</span>
-            </div>
-          </div>
+          <ScoreBreakdown r={r} />
           <div className="mt-2 h-1.5 bg-black/10 rounded-full overflow-hidden">
             <div className={`h-full ${s.bar} rounded-full transition-all`} style={{ width: `${pct}%` }} />
           </div>
@@ -70,8 +89,7 @@ function TopCard({ r, rank, maxPts }: { r: PlayerRanking; rank: number; maxPts: 
 }
 
 function RowCard({ r, rank, maxPts }: { r: PlayerRanking; rank: number; maxPts: number }) {
-  const pct = maxPts > 0 ? Math.max(0, (r.points / maxPts) * 100) : 0;
-  const isNeg = r.points < 0;
+  const pct = maxPts > 0 ? Math.max(2, (r.points / maxPts) * 100) : 0;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
@@ -79,15 +97,13 @@ function RowCard({ r, rank, maxPts }: { r: PlayerRanking; rank: number; maxPts: 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <p className="font-semibold text-gray-900 text-sm truncate">{r.name}</p>
-          <span className={`font-bold text-sm shrink-0 ${isNeg ? 'text-red-500' : 'text-gray-800'}`}>
-            {r.points > 0 ? '+' : ''}{r.points} pts
+          <span className="font-bold text-sm shrink-0 text-gray-800">
+            {r.points} pts
           </span>
         </div>
-        <div className="flex items-center gap-2 mt-1">
-          <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-blue-400 rounded-full" style={{ width: `${pct}%` }} />
-          </div>
-          <span className="text-xs text-gray-400 shrink-0">{r.wins}W · {r.losses}L</span>
+        <ScoreBreakdown r={r} />
+        <div className="mt-1.5 h-1 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-full bg-blue-400 rounded-full" style={{ width: `${pct}%` }} />
         </div>
       </div>
     </div>
@@ -104,12 +120,16 @@ export default function RankingsScreen({ tournaments, onBack }: Props) {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-xl mx-auto p-4">
 
-        {/* Header */}
         <div className="flex items-center gap-3 mb-1">
           <button onClick={onBack} className="text-gray-500 hover:text-gray-700 text-sm shrink-0">← Back</button>
           <h1 className="text-xl font-bold text-gray-900">Player Rankings</h1>
         </div>
-        <p className="text-xs text-gray-400 mb-6 ml-10">Win +2 pts · Loss −1 pt · All tournaments</p>
+        <p className="text-xs text-gray-400 mb-2 ml-10">Score = P (participation) + G (game wins) + B (bonus)</p>
+        <div className="flex gap-3 ml-10 mb-6 text-xs text-gray-400">
+          <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md font-medium">P +2/level</span>
+          <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded-md font-medium">G +2/game win</span>
+          <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-md font-medium">B +2 winner · +1 runner-up</span>
+        </div>
 
         {rankings.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
@@ -119,14 +139,12 @@ export default function RankingsScreen({ tournaments, onBack }: Props) {
           </div>
         ) : (
           <>
-            {/* Top 3 podium cards */}
             <div className="space-y-3 mb-5">
               {top3.map((r, i) => (
                 <TopCard key={r.name} r={r} rank={i} maxPts={maxPts} />
               ))}
             </div>
 
-            {/* Rest of the list */}
             {rest.length > 0 && (
               <>
                 <div className="flex items-center gap-2 mb-3">
