@@ -224,7 +224,7 @@ export default function GroupView({ group, allGroups, format, setCount, players 
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="px-4 py-3 text-left text-gray-500 font-medium w-8">#</th>
                 <th className="px-4 py-3 text-left text-gray-500 font-medium">Team</th>
-                <th className="px-4 py-3 text-center text-gray-500 font-medium">MP</th>
+                <th className="px-4 py-3 text-center text-gray-500 font-medium">{format === 'sets' ? 'MP' : 'GP'}</th>
                 {format === 'sets' ? (
                   <>
                     <th className="px-4 py-3 text-center text-gray-500 font-medium">W</th>
@@ -253,7 +253,7 @@ export default function GroupView({ group, allGroups, format, setCount, players 
                       <div className="text-xs text-gray-400">{s.team.players.join(' / ')}</div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-center text-gray-600">{s.matchesPlayed}</td>
+                  <td className="px-4 py-3 text-center text-gray-600">{format === 'sets' ? s.matchesPlayed : s.gameWins + s.gameLosses}</td>
                   {format === 'sets' ? (
                     <>
                       <td className="px-4 py-3 text-center font-medium text-green-600">{s.matchWins}</td>
