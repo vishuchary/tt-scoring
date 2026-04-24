@@ -78,6 +78,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const hasAutoNavigated = useRef(false);
+  const hasInitRankings = useRef(false);
 
   useEffect(() => {
     const unsubscribeTournaments = subscribeTournaments((list) => {
@@ -86,6 +87,11 @@ export default function App() {
         hasAutoNavigated.current = true;
         const inProgress = list.find(t => getTournamentStatus(t) === 'in-progress');
         if (inProgress) setView({ type: 'tournament', id: inProgress.id });
+      }
+      // Backfill rankings on first load (covers existing data + seed script tournaments)
+      if (!hasInitRankings.current && list.length > 0) {
+        hasInitRankings.current = true;
+        saveRankings(computePlayerRankings(list));
       }
     });
     const unsubscribePlayers = subscribePlayers(setPlayers);
@@ -138,7 +144,7 @@ export default function App() {
   }
 
   if (view.type === 'rankings') {
-    return <RankingsScreen rankings={rankings} isAdmin={isAdmin} onBack={() => setView({ type: 'home' })} />;
+    return <RankingsScreen rankings={rankings} isAdmin={isAdmin} onBack={() => setView({ type: 'home' })} onRecompute={() => recomputeRankings(tournaments)} />;
   }
 
   if (view.type === 'tournament') {

@@ -4,6 +4,7 @@ interface Props {
   rankings: PlayerRanking[];
   isAdmin?: boolean;
   onBack: () => void;
+  onRecompute?: () => void;
 }
 
 const PODIUM_STYLE: Record<number, { border: string; bg: string; badge: string; pts: string; bar: string; icon: string }> = {
@@ -85,7 +86,7 @@ function RowCard({ r, rank, maxPts, isAdmin }: { r: PlayerRanking; rank: number;
 
 const PUBLIC_LIMIT = Number(import.meta.env.VITE_PUBLIC_RANKINGS_LIMIT ?? 5);
 
-export default function RankingsScreen({ rankings, isAdmin, onBack }: Props) {
+export default function RankingsScreen({ rankings, isAdmin, onBack, onRecompute }: Props) {
   const ranked = assignRanks(rankings);
 
   // Non-admins see only players whose rank is within the public limit
@@ -105,6 +106,15 @@ export default function RankingsScreen({ rankings, isAdmin, onBack }: Props) {
         <div className="flex items-center gap-3 mb-1">
           <button onClick={onBack} className="text-gray-500 hover:text-gray-700 text-sm shrink-0">← Back</button>
           <h1 className="text-xl font-bold text-gray-900">Player Rankings</h1>
+          {isAdmin && onRecompute && (
+            <button
+              onClick={onRecompute}
+              className="ml-auto text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2.5 py-1 rounded-lg transition-colors"
+              title="Recompute rankings from all tournament data"
+            >
+              ↻ Recompute
+            </button>
+          )}
         </div>
         <p className="text-xs text-gray-400 mb-6 ml-10">
           Same score = same rank · next rank skips accordingly
