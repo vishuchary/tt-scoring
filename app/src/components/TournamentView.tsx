@@ -275,6 +275,7 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(tournament.name);
   const [showAdvance, setShowAdvance] = useState(false);
+  const [editingCount, setEditingCount] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const prevLevelsLength = useRef(tournament.levels.length);
 
@@ -460,6 +461,7 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
                   onClick={() => {
                     setViewLevel(i);
                     setSelectedGroupId(l.groups[0]?.id ?? null);
+                    setEditingCount(false);
                   }}
                   className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
                     i === viewLevel
@@ -471,6 +473,48 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {level && isAdmin && (
+          <div className="flex items-center gap-2 mb-4">
+            {!editingCount ? (
+              <button
+                onClick={() => setEditingCount(true)}
+                className="text-xs bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 hover:border-blue-300 transition-colors"
+              >
+                {tournament.format === 'sets'
+                  ? `Best of ${level.setCount ?? tournament.setCount ?? 3} sets`
+                  : `${level.setCount ?? tournament.setCount ?? 2} games`} ✏️
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 bg-white border border-blue-300 rounded-lg px-3 py-1.5">
+                <span className="text-xs text-gray-500">
+                  {tournament.format === 'sets' ? 'Sets:' : 'Games:'}
+                </span>
+                <div className="flex gap-1">
+                  {(tournament.format === 'sets' ? [1, 3, 5, 7, 9] : [1, 2, 3, 4, 5, 6]).map(n => {
+                    const cur = level.setCount ?? tournament.setCount ?? (tournament.format === 'sets' ? 3 : 2);
+                    return (
+                      <button
+                        key={n}
+                        onClick={() => {
+                          onUpdate({
+                            ...tournament,
+                            levels: tournament.levels.map((l, i) => i === viewLevel ? { ...l, setCount: n } : l),
+                          });
+                          setEditingCount(false);
+                        }}
+                        className={`w-8 h-7 rounded text-xs font-semibold transition-colors ${cur === n ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-blue-100 text-gray-700'}`}
+                      >
+                        {n}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button onClick={() => setEditingCount(false)} className="text-gray-400 hover:text-gray-600 text-sm ml-1">×</button>
+              </div>
+            )}
           </div>
         )}
 

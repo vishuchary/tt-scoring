@@ -118,7 +118,7 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
       }));
       return { id: uid(), name: gd.name, teams, matches };
     });
-    const level1: TournamentLevel = { id: uid(), name: 'Level 1', groups: builtGroups };
+    const level1: TournamentLevel = { id: uid(), name: 'Level 1', groups: builtGroups, setCount };
     onCreate({ id: uid(), name: name.trim() || `Tournament_${seq}`, format, setCount, matchType, levels: [level1], createdAt: Date.now(), date });
   }
 
