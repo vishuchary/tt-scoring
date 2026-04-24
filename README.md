@@ -2,7 +2,7 @@
 
 A real-time table tennis tournament scoring PWA for Mountain House TT Club. Players view live scores from any device. Admins create and manage tournaments via a PIN-protected admin mode.
 
-**Live app:** https://app-iota-ashen.vercel.app
+**Live app:** https://tt-scoring.vercel.app
 
 ---
 
@@ -43,12 +43,14 @@ All connected clients update instantly
 | `scripts/recompute-rankings.js` | Reads all tournaments from Firebase and rewrites `/rankings` |
 | `sample-tournaments/players_20.json` | Firebase export snapshot: 20 player profiles + 3 seed tournaments |
 | `sample-tournaments/tournament_sampes.json` | Earlier sample tournament export |
+| `sample-tournaments/tournament_spring_2006.json` | Spring 2006 tournament export (games format, used to verify games-format ranking fix) |
 
 ### Data model
 
 ```
 Tournament
-  id, name, format ('sets'|'games'), matchType ('singles'|'doubles'), createdAt
+  id, name, format ('sets'|'games'), setCount, matchType ('singles'|'doubles'),
+  createdAt, date? (YYYY-MM-DD)
   └── levels[]                          ← TournamentLevel
         id, name ('Level 1', 'Finals', …)
         └── groups[]
@@ -58,14 +60,16 @@ Tournament
                                                                team1Score, team2Score
 ```
 
+**Team display names** are computed at render time via `teamDisplayName(team)`: takes the last word of each player's full name, up to 8 characters, joined by `_`. Falls back to `team.name` if no players assigned. Stored team names are never shown directly.
+
 Standings are computed on the fly. **Player rankings are stored in Firebase** at `/rankings` and recomputed whenever any tournament is created, updated, or deleted.
 
 ### Scoring rules
 
 - A game is won when a team reaches **≥ 11 points** with a **≥ 2 point lead**
 - At deuce (10-10) play continues until one team leads by 2
-- **Sets format** — match winner has more sets won; tiebreak by point differential
-- **Games format** — match winner has more games won; tiebreak by point differential
+- **Sets format** — configurable odd count (1, 3, 5, 7, 9); match winner by sets won (first to ceil(N/2)); standings sorted by match wins → point diff; unplayed sets after the deciding set are trimmed on save
+- **Games format** — configurable count (1–6); all games always played; match winner by total game wins; standings sorted by total game wins (GW) → point diff; advancement ranking also uses game wins
 
 ### Player ranking storage
 

@@ -4,7 +4,7 @@
 
 A Progressive Web App (PWA) for running table tennis tournaments at Mountain House TT Club. Players can view live scores in real time from any device. Admins create and manage tournaments via a PIN-protected admin mode. Hosted on Vercel, data synced via Firebase Realtime Database.
 
-**Live URL:** https://app-iota-ashen.vercel.app
+**Live URL:** https://tt-scoring.vercel.app
 
 ---
 
@@ -51,8 +51,11 @@ Fields: Name (required), Age, Sex (Male/Female, default Male), Handedness (Right
 
 **Step 1 — Meta:**
 - Tournament name (default: `Tournament_N`)
+- **Date of tournament** — date picker (defaults to today; displayed on tournament cards)
 - **Assignment Mode**: Random or Custom (see below)
-- Match format: "Best of 3 Sets" or "2 Games"
+- **Match format**: Sets or Games
+  - Sets: choose odd count (1, 3, 5, 7, 9); winner by sets won (first to ceil(N/2)); label e.g. "Best of 3 Sets"
+  - Games: choose any count (1–6); all games played; winner by total game wins; label e.g. "2 Games"
 - Match type: Singles or Doubles (applies to all teams in the tournament)
 
 **Step 2 — Select Players:**
@@ -83,9 +86,10 @@ Fields: Name (required), Age, Sex (Male/Female, default Male), Handedness (Right
 
 **Match entry (bottom sheet modal):**
 - TT rules: win a game with ≥11 points AND ≥2 point lead
-- Sets format: best of 3 sets
-- Games format: 2 games, most game wins decides match winner
+- **Sets format**: configurable odd count; rows beyond the deciding set dim (greyed out, `opacity-30`); trailing unplayed 0-0 sets trimmed on save
+- **Games format**: configurable count; all rows always active (all games played regardless of score)
 - Score input selects all text on focus (prevents 0-prepend bug)
+- Winner banner shown in modal when a winner can be determined
 - Save marks match as completed; Clear resets scores
 - `readOnly` mode: shows scores without inputs or Save/Clear buttons (for locked tournaments)
 
@@ -98,24 +102,40 @@ Fields: Name (required), Age, Sex (Male/Female, default Male), Handedness (Right
 - "Setup Level N+1 →" button opens the advancement sheet
 
 **Advancement sheet:**
-- Ranked team list (cross-group ranking: match wins → set wins → point diff)
+- Ranked team list sorted by format:
+  - Sets: match wins → set wins → point diff
+  - Games: total game wins → point diff
+- Each team row shows stat summary: `NW-NL` (sets format) or `NG` game wins (games format)
 - Checkbox per team; minimum 2 selected
 - "Quick select top N" number input auto-checks top N
 - "Groups in Level N+1" input
 - Teams distributed via serpentine seeding across new groups
 - Level name: "Finals" if 2 teams selected, else "Level N+1"
 
-**Finals:** When a 1-group, 2-team level completes, shows 🏆 champion banner.
+**Finals:** When a 1-group, 2-team level completes, shows 🏆 champion banner. Admin also sees a "+ Setup Level N+1" button to add further levels after finals.
 
 **Level tabs:** All levels accessible; completed levels show ✓.
 
 ### 6. Standings (within a group)
 
-Columns: Rank, Team, MP, W, L, Sets W-L (sets format only), Pts +/-, Diff
+**Sets format columns:** `#` · Team · MP · W · L · Sets W-L · Pts +/- · Diff
 Sort: match wins → point diff
+
+**Games format columns:** `#` · Team · MP · GW · GL · Pts +/- · Diff
+Sort: total game wins → point diff
+
 Medal icons for top 3: 🥇🥈🥉
 
-### 7. Editing After Creation
+### 7. Team Names
+
+Team display names are computed at render time from `teamDisplayName(team)`:
+- Takes the **last word** of each player's full name, up to **8 characters**, joined by `_`
+- Single-name players use their first (and only) word
+- Falls back to `team.name` if no players are assigned
+- Applied everywhere: match cards, standings, score entry, advancement sheet
+- Old tournaments display correctly without any data migration
+
+### 8. Editing After Creation
 
 All names editable while tournament is unlocked:
 - Tournament name: tap to edit inline in header
@@ -123,7 +143,7 @@ All names editable while tournament is unlocked:
 - Player slot: tap to open PlayerPicker (registry + custom name option)
 - PlayerPicker excludes names used in ANY team/group in the same level (cross-group exclusion)
 
-### 8. Admin / Lock System
+### 9. Admin / Lock System
 
 - Completed tournaments are automatically **locked** (view-only for all users)
 - Lock indicator: 🔒 on tournament cards and in tournament header
@@ -133,7 +153,7 @@ All names editable while tournament is unlocked:
 - When admin: Delete button visible, names editable, scores enterable, + New button visible
 - Non-admin: read-only for locked tournaments (scores still viewable)
 
-### 9. Player Rankings
+### 10. Player Rankings
 
 Scoring system (computed dynamically, not stored):
 
@@ -158,13 +178,13 @@ Scoring system (computed dynamically, not stored):
 - Non-admins see only players ranked ≤ `VITE_PUBLIC_RANKINGS_LIMIT` (default 5); footer shows hidden count
 - Score breakdown (P = participation, G = game wins, B = bonus) visible to admins only
 
-### 10. Real-time Sync
+### 11. Real-time Sync
 
 - All data (tournaments + players) synced live via Firebase `onValue` listeners
 - Optimistic UI: local state updated immediately, Firebase confirms async
 - Multiple devices see live score changes instantly
 
-### 11. PWA
+### 12. PWA
 
 - Installable on iPhone via Safari → Add to Home Screen
 - Works offline (Workbox service worker caches all assets)
@@ -202,8 +222,12 @@ interface TournamentLevel { id: string; name: string; groups: Group[]; }
 
 interface Tournament {
   id: string; name: string;
-  format: MatchFormat; matchType?: 'singles' | 'doubles';
-  levels: TournamentLevel[]; createdAt: number;
+  format: MatchFormat;
+  setCount?: number;        // sets: odd (1,3,5,7,9); games: any (1-6); default 3/2
+  matchType?: 'singles' | 'doubles';
+  levels: TournamentLevel[];
+  createdAt: number;
+  date?: string;            // YYYY-MM-DD, shown on tournament cards
 }
 ```
 
@@ -455,7 +479,8 @@ Matches tab:
 - Click opens MatchEntry; when isLocked passes readOnly=true (still opens)
 
 Standings tab:
-- Table: # | Team | MP | W | L | Sets W-L (sets format) | Pts +/- | Diff
+- Sets format: # | Team | MP | W | L | Sets W-L | Pts +/- | Diff (sorted by match wins)
+- Games format: # | Team | MP | GW | GL | Pts +/- | Diff (sorted by total game wins)
 - 🥇🥈🥉 for top 3, yellow highlight rank 1
 
 Teams tab:
@@ -589,6 +614,8 @@ All seed tournaments are generated with random-but-valid scores and are fully co
 ### Sample Data
 
 `sample-tournaments/players_20.json` — Firebase export with 20 player profiles and 3 tournaments (Spring Tournament, Summer 2026, Test Tournament). Use as reference for the data shape or to restore a known state.
+
+`sample-tournaments/tournament_spring_2006.json` — Spring 2006 tournament export (games format, setCount=2). Used to identify and verify the games-format ranking bug fix.
 
 ---
 
