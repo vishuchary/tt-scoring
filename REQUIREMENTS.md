@@ -51,22 +51,33 @@ Fields: Name (required), Age, Sex (Male/Female, default Male), Handedness (Right
 
 **Step 1 — Meta:**
 - Tournament name (default: `Tournament_N`)
+- **Assignment Mode**: Random or Custom (see below)
 - Match format: "Best of 3 Sets" or "2 Games"
 - Match type: Singles or Doubles (applies to all teams in the tournament)
 
 **Step 2 — Select Players:**
 - Checkbox list of all registered players
-- Selected players shown in an ordered list with ↑↓ reorder arrows and × remove
-- **Singles**: each selected player becomes one team (team name = player name)
-- **Doubles**: consecutive pairs in selection order become teams (1+2, 3+4, …); team name = `P1_P2`
-- Warning if odd number selected in doubles mode
-- "Next" disabled until ≥2 teams formed
+- Selected players shown in an ordered list with × remove
+- **Custom mode only**: ↑↓ arrows to reorder (controls team pairing for doubles, group seeding for all)
+- **Singles**: each selected player = one team (name = player name)
+- **Doubles**: consecutive pairs become teams (1+2, 3+4, …); team name = `P1_P2`; unpaired player shown with amber warning
+- "Next" disabled until ≥2 teams formed and no odd doubles count
 
 **Step 3 — Configure Groups:**
-- Number of groups input (clamped to 1…team count)
-- Live preview: shows each group with its auto-assigned teams and match count
-- Teams distributed via serpentine seeding (0→A, 1→B, 2→B, 3→A, …)
-- "Create Tournament" button
+- Number of groups input (clamped to 1…team count); changing resets to serpentine seeding
+- Live preview: each group card shows assigned teams, team count, match count
+- **← → buttons** per team to move between adjacent groups (available in both modes)
+- **Random mode**: 🔀 Re-shuffle button randomizes team order and group assignments
+- **Custom mode**: hint text explains ← → usage
+- Initial distribution via serpentine seeding (0→A, 1→B, 2→B, 3→A, …)
+
+**Random vs Custom modes:**
+| | Random | Custom |
+|---|---|---|
+| Team pairing | App shuffles players | ↑↓ reorder controls pairing |
+| Group assignment | Random + serpentine | Serpentine from your order |
+| Re-shuffle | 🔀 button available | Not available |
+| Manual group adjust | ← → per team | ← → per team |
 
 ### 4. Scoring
 
@@ -364,26 +375,44 @@ Create src/components/PlayerPicker.tsx:
 ```
 Create src/components/TournamentSetup.tsx with 3 steps:
 
+State: mode ('random'|'custom'), step, name, format, matchType, selected[],
+       groupCount, teamOrder[], groupAssignments[]
+
+Helpers:
+- shuffle<T>(arr): Fisher-Yates shuffle
+- serpentineGroupIndex(teamIdx, groupCount): round-robin seeding
+- teamsFromOrder(order): singles → each player is a team; doubles → consecutive pairs
+- initAssignments(order, gc): teamsFromOrder then serpentine per team
+- getGroupDist(): uses teamOrder + groupAssignments state
+
 Step 1 (meta):
 - Tournament name input (default Tournament_N)
-- Match format card toggle: "Best of 3 Sets" / "2 Games"
-- Match type card toggle: "Singles" / "Doubles"
+- Assignment mode cards: "🔀 Random" (app shuffles) / "✏️ Custom" (you control)
+- Match format cards: "Best of 3 Sets" / "2 Games"
+- Match type cards: "Singles" / "Doubles"
 
 Step 2 (players):
-- Checkbox list of registered players (unselected shown at bottom)
-- Selected players shown at top in order with ↑↓ arrows and × remove
-- Singles: each player = 1 team (name = player name)
-- Doubles: consecutive pairs = 1 team (name = P1_P2); show pairs in blue boxes,
-  unpaired player shown in amber with "needs a partner" label
-- "Next" disabled until ≥2 teams formed and no odd doubles
+- Mode badge shown in header (Random / Custom)
+- Checkbox list of unselected players at bottom
+- Selected players shown at top with × remove
+- Custom mode only: ↑↓ arrows to reorder (controls pairing order)
+- Doubles: show pairs in blue boxes, unpaired in amber "needs a partner"
+- Random mode: show note "Teams and groups will be randomized on next step"
+- "Next" disabled until ≥2 teams and no odd doubles
+
+Transition to step 3 (enterGroupStep):
+- Random: shuffle(selected) → setTeamOrder; initAssignments → setGroupAssignments
+- Custom: setTeamOrder(selected); initAssignments → setGroupAssignments
 
 Step 3 (groups):
-- Number of groups input (1 to team count)
-- Live preview: each group card shows assigned teams, team count, match count
-- Teams distributed via serpentine seeding (0→A, 1→B, 2→B, 3→A, …)
-- "Create Tournament" button
+- Header: Random mode shows 🔀 Re-shuffle button (re-shuffles teamOrder + resets assignments)
+- Number of groups input; onChange → handleGroupCountChange (resets to serpentine)
+- Group preview cards: group name, team count, match count
+  - Each team row: name (+ players for doubles), ← → buttons when groupCount > 1
+  - ← moves team to previous group (disabled if in first), → to next (disabled if in last)
+- moveTeam(teamIdx, dir): updates groupAssignments[teamIdx] ± 1, clamped to [0, groupCount-1]
 
-On create: build Group[] from preview, wrap in TournamentLevel 'Level 1', call onCreate.
+On create: build Group[] from getGroupDist(), wrap in TournamentLevel 'Level 1', call onCreate.
 ```
 
 ---

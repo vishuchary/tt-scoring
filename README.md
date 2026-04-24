@@ -30,7 +30,7 @@ All connected clients update instantly
 | `src/firebase.ts` | Firebase app init — exports `db` |
 | `src/store.ts` | Firebase CRUD + `toArray()` normaliser for Firebase array serialisation |
 | `src/rankings.ts` | Pure logic — `generateMatches`, `computeStandings`, `computePlayerRankings` |
-| `src/components/TournamentSetup.tsx` | 3-step creation wizard: meta → select players → configure groups |
+| `src/components/TournamentSetup.tsx` | 3-step creation wizard: meta (+ mode) → select players → configure groups (random or custom) |
 | `src/components/TournamentView.tsx` | Tournament detail — level tabs, lock/admin, advancement sheet |
 | `src/components/GroupView.tsx` | Matches / Standings / Teams tabs within a group |
 | `src/components/MatchEntry.tsx` | Score entry bottom sheet (readOnly prop for locked view) |
