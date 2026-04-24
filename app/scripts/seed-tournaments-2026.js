@@ -24,6 +24,12 @@ const PLAYERS = [
 
 function uid() { return Math.random().toString(36).slice(2, 10); }
 
+function shortName(fullName) {
+  const parts = fullName.trim().split(/\s+/);
+  const base = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+  return base.slice(0, 6);
+}
+
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -290,7 +296,7 @@ async function main() {
     const players = shuffle(PLAYERS);
     const allTeams = [];
     for (let i = 0; i + 1 < players.length; i += 2)
-      allTeams.push({ id: uid(), name: `${players[i]}_${players[i + 1]}`, players: [players[i], players[i + 1]], type: 'doubles' });
+      allTeams.push({ id: uid(), name: `${shortName(players[i])}_${shortName(players[i + 1])}`, players: [players[i], players[i + 1]], type: 'doubles' });
 
     const l1Groups = makeGroups(distribute(allTeams, 2), (a, b) => bestOf(a, b, 3));
     const level1 = { id: uid(), name: 'Level 1', groups: l1Groups };
@@ -330,7 +336,7 @@ async function main() {
     const players = shuffle(PLAYERS);
     const allTeams = [];
     for (let i = 0; i + 1 < players.length; i += 2)
-      allTeams.push({ id: uid(), name: `${players[i]}_${players[i + 1]}`, players: [players[i], players[i + 1]], type: 'doubles' });
+      allTeams.push({ id: uid(), name: `${shortName(players[i])}_${shortName(players[i + 1])}`, players: [players[i], players[i + 1]], type: 'doubles' });
 
     const l1Group = { id: uid(), name: 'Group A', teams: allTeams, matches: roundRobin(allTeams, twoGames) };
     const level1 = { id: uid(), name: 'Level 1', groups: [l1Group] };

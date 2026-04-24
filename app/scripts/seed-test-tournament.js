@@ -18,6 +18,12 @@ const firebaseConfig = {
 
 function uid() { return Math.random().toString(36).slice(2, 10); }
 
+function shortName(fullName) {
+  const parts = fullName.trim().split(/\s+/);
+  const base = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+  return base.slice(0, 6);
+}
+
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -125,7 +131,7 @@ async function main() {
   const allTeams = [];
   for (let i = 0; i + 1 < playerNames.length; i += 2) {
     const p1 = playerNames[i], p2 = playerNames[i + 1];
-    allTeams.push({ id: uid(), name: `${p1}_${p2}`, type: 'doubles', players: [p1, p2] });
+    allTeams.push({ id: uid(), name: `${shortName(p1)}_${shortName(p2)}`, type: 'doubles', players: [p1, p2] });
   }
 
   // ── Level 1: 2 groups (5 + 4 teams) ─────────────────────────────────────
