@@ -17,6 +17,12 @@ interface Props {
   onRequestAdmin: () => void;
 }
 
+function serpentineIdx(teamIdx: number, groupCount: number): number {
+  const round = Math.floor(teamIdx / groupCount);
+  const pos = teamIdx % groupCount;
+  return round % 2 === 0 ? pos : groupCount - 1 - pos;
+}
+
 function AdvanceSetup({
   levelGroups,
   format,
@@ -27,7 +33,7 @@ function AdvanceSetup({
   levelGroups: Group[];
   format: MatchFormat;
   nextLevelNum: number;
-  onCreate: (selectedTeamIds: string[], groupCount: number) => void;
+  onCreate: (selectedTeamIds: string[], groupCount: number, assignments: number[]) => void;
   onCancel: () => void;
 }) {
   const allStats = computeCrossGroupRankings(levelGroups, format);
@@ -38,8 +44,11 @@ function AdvanceSetup({
   );
   const [quickN, setQuickN] = useState(defaultN);
   const [groupCount, setGroupCount] = useState(1);
+  const [step, setStep] = useState<'select' | 'assign'>('select');
+  const [assignments, setAssignments] = useState<number[]>([]);
 
-  const selectedCount = selectedIds.size;
+  const selectedStats = allStats.filter(s => selectedIds.has(s.team.id));
+  const selectedCount = selectedStats.length;
   const nextLevelName = selectedCount <= 2 ? 'Finals' : `Level ${nextLevelNum}`;
   const maxGroups = Math.max(1, Math.floor(selectedCount / 2));
 
@@ -57,13 +66,90 @@ function AdvanceSetup({
   function toggleTeam(id: string) {
     setSelectedIds(prev => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        if (next.size > 2) next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) { if (next.size > 2) next.delete(id); }
+      else next.add(id);
       return next;
     });
+  }
+
+  function goToAssign() {
+    setAssignments(selectedStats.map((_, i) => serpentineIdx(i, groupCount)));
+    setStep('assign');
+  }
+
+  function moveTeam(teamIdx: number, dir: -1 | 1) {
+    setAssignments(prev => {
+      const next = [...prev];
+      next[teamIdx] = Math.max(0, Math.min(groupCount - 1, next[teamIdx] + dir));
+      return next;
+    });
+  }
+
+  const groupDist = Array.from({ length: groupCount }, (_, gi) =>
+    selectedStats.filter((_, ti) => assignments[ti] === gi)
+  );
+
+  if (step === 'assign') {
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end sm:justify-center sm:items-center sm:p-4">
+        <div className="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-xl flex flex-col max-h-[90vh]">
+          <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
+            <button onClick={() => setStep('select')} className="text-gray-500 hover:text-gray-700 text-sm">← Back</button>
+            <h2 className="text-lg font-bold text-gray-900">Assign Groups</h2>
+            <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+          </div>
+
+          <div className="overflow-y-auto px-5 pb-3 space-y-3 flex-1">
+            {groupDist.map((teams, gi) => (
+              <div key={gi} className="bg-gray-50 rounded-xl border border-gray-200 p-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Group {String.fromCharCode(65 + gi)} · {teams.length} team{teams.length !== 1 ? 's' : ''}
+                </p>
+                <div className="space-y-1.5">
+                  {teams.length === 0 && <p className="text-xs text-gray-400 italic">No teams</p>}
+                  {teams.map(s => {
+                    const ti = selectedStats.indexOf(s);
+                    return (
+                      <div key={s.team.id} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-gray-100">
+                        <span className="text-xs text-gray-400 w-4 shrink-0">{allStats.indexOf(s) + 1}</span>
+                        <span className="flex-1 text-sm font-medium text-gray-900">{teamDisplayName(s.team)}</span>
+                        <span className="text-xs text-gray-400 mr-1">
+                          {format === 'sets' ? `${s.matchWins}W` : `${s.gameWins}G`}
+                        </span>
+                        {groupCount > 1 && (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => moveTeam(ti, -1)}
+                              disabled={gi === 0}
+                              className="text-xs bg-gray-100 hover:bg-blue-100 hover:text-blue-700 disabled:opacity-20 px-2 py-1 rounded font-medium transition-colors"
+                            >←</button>
+                            <button
+                              onClick={() => moveTeam(ti, 1)}
+                              disabled={gi === groupCount - 1}
+                              className="text-xs bg-gray-100 hover:bg-blue-100 hover:text-blue-700 disabled:opacity-20 px-2 py-1 rounded font-medium transition-colors"
+                            >→</button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="px-5 py-4 border-t border-gray-100 shrink-0">
+            <button
+              onClick={() => onCreate(selectedStats.map(s => s.team.id), groupCount, assignments)}
+              disabled={groupDist.some(g => g.length === 0)}
+              className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-40 transition-colors"
+            >
+              Create {nextLevelName} →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -144,19 +230,16 @@ function AdvanceSetup({
               value={groupCount}
               onChange={e => setGroupCount(Math.min(maxGroups, Math.max(1, parseInt(e.target.value) || 1)))}
             />
-            {groupCount > 1 && (
-              <p className="text-xs text-gray-400 mt-1">Teams will be seeded across {groupCount} groups</p>
-            )}
           </div>
         </div>
 
         <div className="px-5 py-4 border-t border-gray-100 shrink-0">
           <button
-            onClick={() => onCreate([...selectedIds], groupCount)}
+            onClick={groupCount > 1 ? goToAssign : () => onCreate(selectedStats.map(s => s.team.id), groupCount, selectedStats.map(() => 0))}
             disabled={selectedCount < 2}
             className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-40 transition-colors"
           >
-            Create {nextLevelName} ({selectedCount} teams) →
+            {groupCount > 1 ? `Next: Assign Groups →` : `Create ${nextLevelName} (${selectedCount} teams) →`}
           </button>
         </div>
       </div>
@@ -219,7 +302,7 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
     });
   }
 
-  function handleCreateNextLevel(selectedTeamIds: string[], groupCount: number) {
+  function handleCreateNextLevel(selectedTeamIds: string[], groupCount: number, assignments: number[]) {
     const allStats = computeCrossGroupRankings(level.groups, tournament.format);
     const advancing = allStats.filter(s => selectedTeamIds.includes(s.team.id));
     const nextLevelNum = tournament.levels.length + 1;
@@ -227,9 +310,7 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
 
     const groupTeamsList: Team[][] = Array.from({ length: groupCount }, () => []);
     advancing.forEach((s, i) => {
-      const round = Math.floor(i / groupCount);
-      const pos = round % 2 === 0 ? i % groupCount : groupCount - 1 - (i % groupCount);
-      groupTeamsList[pos].push({ ...s.team });
+      groupTeamsList[assignments[i] ?? 0].push({ ...s.team });
     });
 
     const newGroups: Group[] = groupTeamsList
