@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import type { Tournament, TournamentLevel, Group, Match, Team, MatchFormat } from '../types';
+import type { Tournament, TournamentLevel, Group, Match, Team, MatchFormat, Player } from '../types';
 import { computeCrossGroupRankings, generateMatches } from '../rankings';
 import GroupView from './GroupView';
 
@@ -9,6 +9,7 @@ function uid() {
 
 interface Props {
   tournament: Tournament;
+  players: Player[];
   onUpdate: (t: Tournament) => void;
   onDelete: () => void;
   onBack: () => void;
@@ -24,27 +25,43 @@ function AdvanceSetup({
   levelGroups: Group[];
   format: MatchFormat;
   nextLevelNum: number;
-  onCreate: (advanceCount: number, groupCount: number) => void;
+  onCreate: (selectedTeamIds: string[], groupCount: number) => void;
   onCancel: () => void;
 }) {
   const allStats = computeCrossGroupRankings(levelGroups, format);
   const totalTeams = allStats.length;
-  const defaultAdvance = Math.max(2, Math.ceil(totalTeams / 2));
-  const [advanceCount, setAdvanceCount] = useState(Math.min(defaultAdvance, totalTeams));
+  const defaultN = Math.min(Math.max(2, Math.ceil(totalTeams / 2)), totalTeams);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    new Set(allStats.slice(0, defaultN).map(s => s.team.id))
+  );
+  const [quickN, setQuickN] = useState(defaultN);
   const [groupCount, setGroupCount] = useState(1);
 
-  const nextLevelName = advanceCount <= 2 ? 'Finals' : `Level ${nextLevelNum}`;
-  const maxGroups = Math.max(1, Math.floor(advanceCount / 2));
+  const selectedCount = selectedIds.size;
+  const nextLevelName = selectedCount <= 2 ? 'Finals' : `Level ${nextLevelNum}`;
+  const maxGroups = Math.max(1, Math.floor(selectedCount / 2));
 
   const teamGroupMap = new Map<string, string>();
   if (levelGroups.length > 1) {
     levelGroups.forEach(g => g.teams.forEach(t => teamGroupMap.set(t.id, g.name)));
   }
 
-  function handleAdvanceChange(val: number) {
-    const v = Math.min(totalTeams, Math.max(2, val));
-    setAdvanceCount(v);
-    setGroupCount(gc => Math.min(gc, Math.max(1, Math.floor(v / 2))));
+  function selectTop(n: number) {
+    const v = Math.min(totalTeams, Math.max(2, n));
+    setQuickN(v);
+    setSelectedIds(new Set(allStats.slice(0, v).map(s => s.team.id)));
+  }
+
+  function toggleTeam(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        if (next.size > 2) next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   }
 
   return (
@@ -56,40 +73,42 @@ function AdvanceSetup({
         </div>
 
         <div className="overflow-y-auto px-5 pb-3 space-y-5 flex-1">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Advance top teams (min 2, max {totalTeams})
-            </label>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={2}
-              max={totalTeams}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400"
-              value={advanceCount}
-              onChange={e => handleAdvanceChange(parseInt(e.target.value) || 2)}
-            />
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Quick select top N</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={2}
+                max={totalTeams}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400"
+                value={quickN}
+                onChange={e => selectTop(parseInt(e.target.value) || 2)}
+              />
+            </div>
+            <p className="text-sm text-gray-500 pb-2 shrink-0">{selectedCount} selected</p>
           </div>
 
           <div>
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-              Rankings — advancing top {advanceCount}
+              Tap to select / deselect
             </p>
             <div className="space-y-1.5">
               {allStats.map((s, i) => {
-                const qualifying = i < advanceCount;
+                const selected = selectedIds.has(s.team.id);
                 const grpName = teamGroupMap.get(s.team.id);
                 return (
-                  <div
+                  <button
                     key={s.team.id}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm border ${
-                      qualifying
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-gray-50 border-gray-100 opacity-50'
+                    onClick={() => toggleTeam(s.team.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm border transition-colors ${
+                      selected
+                        ? 'bg-blue-50 border-blue-300'
+                        : 'bg-gray-50 border-gray-200 opacity-60'
                     }`}
                   >
                     <span className="w-5 text-center text-xs font-semibold text-gray-500">{i + 1}</span>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 text-left">
                       <span className="font-medium text-gray-900">{s.team.name}</span>
                       {grpName && <span className="text-xs text-gray-400 ml-1.5">{grpName}</span>}
                     </div>
@@ -97,8 +116,12 @@ function AdvanceSetup({
                     <span className={`text-xs font-medium w-10 text-right ${s.pointDiff > 0 ? 'text-green-600' : s.pointDiff < 0 ? 'text-red-400' : 'text-gray-400'}`}>
                       {s.pointDiff > 0 ? '+' : ''}{s.pointDiff}
                     </span>
-                    <span className="w-4 text-green-500 text-xs">{qualifying ? '✓' : ''}</span>
-                  </div>
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${
+                      selected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
+                    }`}>
+                      {selected && <span className="text-white text-xs leading-none">✓</span>}
+                    </div>
+                  </button>
                 );
               })}
             </div>
@@ -106,7 +129,7 @@ function AdvanceSetup({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Number of groups in {nextLevelName}
+              Groups in {nextLevelName}
             </label>
             <input
               type="number"
@@ -125,10 +148,11 @@ function AdvanceSetup({
 
         <div className="px-5 py-4 border-t border-gray-100 shrink-0">
           <button
-            onClick={() => onCreate(advanceCount, groupCount)}
-            className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+            onClick={() => onCreate([...selectedIds], groupCount)}
+            disabled={selectedCount < 2}
+            className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-40 transition-colors"
           >
-            Create {nextLevelName} →
+            Create {nextLevelName} ({selectedCount} teams) →
           </button>
         </div>
       </div>
@@ -136,7 +160,7 @@ function AdvanceSetup({
   );
 }
 
-export default function TournamentView({ tournament, onUpdate, onDelete, onBack }: Props) {
+export default function TournamentView({ tournament, players, onUpdate, onDelete, onBack }: Props) {
   const [viewLevel, setViewLevel] = useState(tournament.levels.length - 1);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(
     tournament.levels[tournament.levels.length - 1]?.groups[0]?.id ?? null
@@ -155,7 +179,6 @@ export default function TournamentView({ tournament, onUpdate, onDelete, onBack 
     if (!editingName) setNameInput(tournament.name);
   }, [tournament.name, editingName]);
 
-  // Auto-switch to newly added level
   useEffect(() => {
     if (tournament.levels.length > prevLevelsLength.current) {
       const newIdx = tournament.levels.length - 1;
@@ -187,13 +210,12 @@ export default function TournamentView({ tournament, onUpdate, onDelete, onBack 
     });
   }
 
-  function handleCreateNextLevel(advanceCount: number, groupCount: number) {
+  function handleCreateNextLevel(selectedTeamIds: string[], groupCount: number) {
     const allStats = computeCrossGroupRankings(level.groups, tournament.format);
-    const advancing = allStats.slice(0, advanceCount);
+    const advancing = allStats.filter(s => selectedTeamIds.includes(s.team.id));
     const nextLevelNum = tournament.levels.length + 1;
-    const newLevelName = advanceCount <= 2 ? 'Finals' : `Level ${nextLevelNum}`;
+    const newLevelName = advancing.length <= 2 ? 'Finals' : `Level ${nextLevelNum}`;
 
-    // Serpentine seeding: rank 1 → group A, rank 2 → group B, rank 3 → group B, rank 4 → group A, ...
     const groupTeamsList: Team[][] = Array.from({ length: groupCount }, () => []);
     advancing.forEach((s, i) => {
       const round = Math.floor(i / groupCount);
@@ -228,7 +250,6 @@ export default function TournamentView({ tournament, onUpdate, onDelete, onBack 
   const selectedGroup =
     level?.groups.find(g => g.id === selectedGroupId) ?? level?.groups[0] ?? null;
 
-  // Winner for finals display
   let winner: Team | null = null;
   if (isFinals && levelComplete && level) {
     winner = computeCrossGroupRankings(level.groups, tournament.format)[0]?.team ?? null;
@@ -247,7 +268,6 @@ export default function TournamentView({ tournament, onUpdate, onDelete, onBack 
       )}
 
       <div className="max-w-5xl mx-auto p-6">
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <button onClick={onBack} className="text-gray-500 hover:text-gray-700 shrink-0">← Back</button>
@@ -283,7 +303,6 @@ export default function TournamentView({ tournament, onUpdate, onDelete, onBack 
           </button>
         </div>
 
-        {/* Level tabs */}
         {tournament.levels.length > 1 && (
           <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
             {tournament.levels.map((l, i) => {
@@ -309,7 +328,6 @@ export default function TournamentView({ tournament, onUpdate, onDelete, onBack 
           </div>
         )}
 
-        {/* Group tabs within level */}
         {level && level.groups.length > 1 && (
           <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
             {level.groups.map(g => (
@@ -332,11 +350,11 @@ export default function TournamentView({ tournament, onUpdate, onDelete, onBack 
           <GroupView
             group={selectedGroup}
             format={tournament.format}
+            players={players}
             onUpdate={g => handleGroupUpdate(viewLevel, g)}
           />
         )}
 
-        {/* Level complete banner */}
         {isLatestLevel && levelComplete && (
           <div className={`mt-6 rounded-xl p-5 border ${
             isFinals ? 'bg-yellow-50 border-yellow-200' : 'bg-green-50 border-green-200'
@@ -350,12 +368,8 @@ export default function TournamentView({ tournament, onUpdate, onDelete, onBack 
             ) : (
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                  <p className="text-green-800 font-semibold">
-                    ✅ {level.name} complete!
-                  </p>
-                  <p className="text-sm text-green-700 mt-0.5">
-                    All {allLevelMatches.length} matches played
-                  </p>
+                  <p className="text-green-800 font-semibold">✅ {level.name} complete!</p>
+                  <p className="text-sm text-green-700 mt-0.5">All {allLevelMatches.length} matches played</p>
                 </div>
                 <button
                   onClick={() => setShowAdvance(true)}

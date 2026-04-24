@@ -122,6 +122,7 @@ export default function App() {
     return (
       <TournamentView
         tournament={t}
+        players={players}
         onUpdate={handleUpdate}
         onDelete={() => handleDelete(t.id)}
         onBack={() => setView({ type: 'home' })}

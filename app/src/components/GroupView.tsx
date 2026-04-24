@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import type { Group, Match, MatchFormat, Team } from '../types';
+import type { Group, Match, MatchFormat, Team, Player } from '../types';
 import { computeStandings } from '../rankings';
 import MatchEntry from './MatchEntry';
+import PlayerPicker from './PlayerPicker';
 
 interface Props {
   group: Group;
   format: MatchFormat;
+  players?: Player[];
   onUpdate: (g: Group) => void;
 }
+
+type PickerTarget = { teamId: string; playerIdx: number };
 
 type Tab = 'matches' | 'standings' | 'teams';
 
@@ -55,9 +59,10 @@ function InlineInput({
   );
 }
 
-export default function GroupView({ group, format, onUpdate }: Props) {
+export default function GroupView({ group, format, players = [], onUpdate }: Props) {
   const [tab, setTab] = useState<Tab>('matches');
   const [editMatch, setEditMatch] = useState<Match | null>(null);
+  const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
 
   const standings = computeStandings(group, format);
   const teamMap = Object.fromEntries(group.teams.map(t => [t.id, t]));
@@ -90,8 +95,30 @@ export default function GroupView({ group, format, onUpdate }: Props) {
   const completedCount = group.matches.filter(m => m.completed).length;
   const tabs: Tab[] = ['matches', 'standings', 'teams'];
 
+  const pickerCurrentValue = pickerTarget
+    ? group.teams.find(t => t.id === pickerTarget.teamId)?.players[pickerTarget.playerIdx] ?? ''
+    : '';
+  const pickerUsedNames = pickerTarget
+    ? new Set(group.teams.flatMap(t =>
+        t.players.filter((_, pi) => !(t.id === pickerTarget.teamId && pi === pickerTarget.playerIdx))
+      ))
+    : new Set<string>();
+
   return (
     <div>
+      {pickerTarget && (
+        <PlayerPicker
+          players={players}
+          current={pickerCurrentValue}
+          usedNames={pickerUsedNames}
+          onSelect={name => {
+            const team = group.teams.find(t => t.id === pickerTarget.teamId);
+            if (team) updatePlayerName(team, pickerTarget.playerIdx, name);
+            setPickerTarget(null);
+          }}
+          onCancel={() => setPickerTarget(null)}
+        />
+      )}
       {editMatch && (
         <MatchEntry
           match={editMatch}
@@ -245,11 +272,12 @@ export default function GroupView({ group, format, onUpdate }: Props) {
                       <p className="text-xs text-gray-400 mb-0.5">
                         {team.players.length > 1 ? `Player ${pi + 1}` : 'Player'}
                       </p>
-                      <InlineInput
-                        value={player}
-                        onSave={name => updatePlayerName(team, pi, name)}
-                        className="text-sm text-gray-700 w-full"
-                      />
+                      <button
+                        onClick={() => setPickerTarget({ teamId: team.id, playerIdx: pi })}
+                        className="text-sm text-blue-600 hover:text-blue-800 text-left truncate w-full"
+                      >
+                        {player || <span className="text-gray-400">Select player…</span>}
+                      </button>
                     </div>
                   ))}
                 </div>
