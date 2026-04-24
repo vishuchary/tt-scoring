@@ -47,7 +47,33 @@ Fields: Name (required), Age, Sex (Male/Female, default Male), Handedness (Right
 - Listed alphabetically
 - Editable and deletable at any time
 
-### 3. Tournament Creation (3-step wizard)
+### 3. CSV Import
+
+Admin mode shows an **Import CSV** button (home screen, next to "+ New"). Opens a dedicated import screen.
+
+**CSV format:**
+```
+Player 1,Player 2,Game 1 Score,Game 2 Score,…,Opponent 1,Opponent 2
+Chandu,Pradeep,11-9,11-9,Chary,Partha
+```
+- Each row = one completed match
+- Score format: `team1Score-team2Score` (e.g. `11-9`)
+- Omit Player 2 / Opponent 2 columns for singles
+
+**Auto-detection:**
+- **Singles vs doubles**: whether Player 2 / Opponent 2 columns have data
+- **Game count**: number of `Game N Score` columns → `setCount`
+- **Format**: always `games` (all games played, rank by total game wins)
+
+**Import flow:**
+1. Paste CSV text or upload a `.csv` file (FileReader, client-side)
+2. Click **Parse CSV** → preview: teams detected, match count, any warnings
+3. Set tournament name and date (defaults to today)
+4. Click **Create Tournament** → saved to Firebase, redirects to tournament view
+
+All parsed matches are marked `completed: true`. All unique teams go in a single group (Level 1, Group A). Tournament appears on home screen immediately after creation.
+
+### 4. Tournament Creation (3-step wizard)
 
 **Step 1 — Meta:**
 - Tournament name (default: `Tournament_N`)
@@ -258,6 +284,7 @@ app/
     firebase.ts                  # Firebase app init
     components/
       TournamentSetup.tsx        # 3-step tournament creation wizard
+      ImportCSV.tsx              # CSV import screen — paste/upload match scores → completed tournament
       TournamentView.tsx         # Tournament view + level tabs + AdvanceSetup sheet
       GroupView.tsx              # Matches / Standings / Teams tabs
       MatchEntry.tsx             # Score entry bottom sheet (supports readOnly)
