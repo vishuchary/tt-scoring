@@ -10,9 +10,11 @@ function uid() {
 interface Props {
   tournament: Tournament;
   players: Player[];
+  isAdmin: boolean;
   onUpdate: (t: Tournament) => void;
   onDelete: () => void;
   onBack: () => void;
+  onRequestAdmin: () => void;
 }
 
 function AdvanceSetup({
@@ -160,7 +162,7 @@ function AdvanceSetup({
   );
 }
 
-export default function TournamentView({ tournament, players, onUpdate, onDelete, onBack }: Props) {
+export default function TournamentView({ tournament, players, isAdmin, onUpdate, onDelete, onBack, onRequestAdmin }: Props) {
   const [viewLevel, setViewLevel] = useState(tournament.levels.length - 1);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(
     tournament.levels[tournament.levels.length - 1]?.groups[0]?.id ?? null
@@ -193,6 +195,11 @@ export default function TournamentView({ tournament, players, onUpdate, onDelete
   const allLevelMatches = level?.groups.flatMap(g => g.matches) ?? [];
   const levelComplete = allLevelMatches.length > 0 && allLevelMatches.every(m => m.completed);
   const isFinals = level?.groups.length === 1 && level.groups[0].teams.length === 2;
+
+  // Tournament is locked when all matches across all levels are done and user is not admin
+  const allTournamentMatches = tournament.levels.flatMap(l => l.groups.flatMap(g => g.matches));
+  const tournamentComplete = allTournamentMatches.length > 0 && allTournamentMatches.every(m => m.completed);
+  const isLocked = tournamentComplete && !isAdmin;
 
   function commitName() {
     const name = nameInput.trim() || tournament.name;
@@ -272,7 +279,7 @@ export default function TournamentView({ tournament, players, onUpdate, onDelete
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <button onClick={onBack} className="text-gray-500 hover:text-gray-700 shrink-0">← Back</button>
             <div className="flex-1 min-w-0">
-              {editingName ? (
+              {editingName && !isLocked ? (
                 <input
                   ref={nameRef}
                   className="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-blue-400 outline-none w-full"
@@ -283,11 +290,12 @@ export default function TournamentView({ tournament, players, onUpdate, onDelete
                 />
               ) : (
                 <h1
-                  className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors truncate"
-                  title="Tap to rename"
-                  onClick={() => setEditingName(true)}
+                  className={`text-2xl font-bold text-gray-900 truncate flex items-center gap-2 ${!isLocked ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}`}
+                  title={isLocked ? 'Locked — admin only' : 'Tap to rename'}
+                  onClick={() => !isLocked && setEditingName(true)}
                 >
                   {tournament.name}
+                  {isLocked && <span className="text-lg">🔒</span>}
                 </h1>
               )}
               <p className="text-sm text-gray-500">
@@ -295,13 +303,28 @@ export default function TournamentView({ tournament, players, onUpdate, onDelete
               </p>
             </div>
           </div>
-          <button
-            onClick={() => { if (confirm('Delete this tournament?')) onDelete(); }}
-            className="text-red-400 hover:text-red-600 text-sm shrink-0 ml-4"
-          >
-            Delete
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => { if (confirm('Delete this tournament?')) onDelete(); }}
+              className="text-red-400 hover:text-red-600 text-sm shrink-0 ml-4"
+            >
+              Delete
+            </button>
+          )}
         </div>
+
+        {/* Lock banner */}
+        {isLocked && (
+          <div className="flex items-center justify-between bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 mb-5">
+            <p className="text-sm text-gray-600">🔒 Tournament locked — view only</p>
+            <button
+              onClick={onRequestAdmin}
+              className="text-sm text-blue-600 font-medium hover:text-blue-800"
+            >
+              Admin Login
+            </button>
+          </div>
+        )}
 
         {tournament.levels.length > 1 && (
           <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
@@ -352,6 +375,7 @@ export default function TournamentView({ tournament, players, onUpdate, onDelete
             allGroups={level?.groups}
             format={tournament.format}
             players={players}
+            isLocked={isLocked}
             onUpdate={g => handleGroupUpdate(viewLevel, g)}
           />
         )}
