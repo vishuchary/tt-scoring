@@ -4,6 +4,7 @@ import { savePlayer, deletePlayer } from '../store';
 
 interface Props {
   players: Player[];
+  isAdmin: boolean;
   onBack: () => void;
 }
 
@@ -182,7 +183,7 @@ function playerSummary(p: Player): string {
   return parts.join(' · ');
 }
 
-export default function PlayersScreen({ players, onBack }: Props) {
+export default function PlayersScreen({ players, isAdmin, onBack }: Props) {
   const [formState, setFormState] = useState<
     | { mode: 'add' }
     | { mode: 'edit'; player: Player }
@@ -219,12 +220,14 @@ export default function PlayersScreen({ players, onBack }: Props) {
             <button onClick={onBack} className="text-gray-500 hover:text-gray-700 text-sm">← Back</button>
             <h1 className="text-xl font-bold text-gray-900">Players</h1>
           </div>
-          <button
-            onClick={() => setFormState({ mode: 'add' })}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-          >
-            + Add Player
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setFormState({ mode: 'add' })}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              + Add Player
+            </button>
+          )}
         </div>
 
         {players.length === 0 ? (
@@ -243,18 +246,22 @@ export default function PlayersScreen({ players, onBack }: Props) {
                     <p className="text-xs text-gray-400 mt-0.5 truncate">{playerSummary(p)}</p>
                   )}
                 </div>
-                <button
-                  onClick={() => setFormState({ mode: 'edit', player: p })}
-                  className="text-gray-400 hover:text-blue-500 text-sm px-1 shrink-0"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(p.id)}
-                  className="text-gray-300 hover:text-red-400 text-lg leading-none px-1 shrink-0"
-                >
-                  ×
-                </button>
+                {isAdmin && (
+                  <>
+                    <button
+                      onClick={() => setFormState({ mode: 'edit', player: p })}
+                      className="text-gray-400 hover:text-blue-500 text-sm px-1 shrink-0"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(p.id)}
+                      className="text-gray-300 hover:text-red-400 text-lg leading-none px-1 shrink-0"
+                    >
+                      ×
+                    </button>
+                  </>
+                )}
               </div>
             ))}
           </div>
