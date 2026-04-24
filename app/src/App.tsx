@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Tournament, Player } from './types';
-import { subscribeTournaments, saveTournament, deleteTournament, subscribePlayers } from './store';
+import { subscribeTournaments, saveTournament, deleteTournament, subscribePlayers, saveRankings, subscribeRankings } from './store';
+import { computePlayerRankings, type PlayerRanking } from './rankings';
 import TournamentSetup from './components/TournamentSetup';
 import TournamentView from './components/TournamentView';
 import PlayersScreen from './components/PlayersScreen';
@@ -72,6 +73,7 @@ function TournamentCard({ t, onClick }: { t: Tournament; onClick: () => void }) 
 export default function App() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [rankings, setRankings] = useState<PlayerRanking[]>([]);
   const [view, setView] = useState<View>({ type: 'home' });
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -87,25 +89,36 @@ export default function App() {
       }
     });
     const unsubscribePlayers = subscribePlayers(setPlayers);
+    const unsubscribeRankings = subscribeRankings(setRankings);
     return () => {
       unsubscribeTournaments();
       unsubscribePlayers();
+      unsubscribeRankings();
     };
   }, []);
 
+  function recomputeRankings(updatedTournaments: Tournament[]) {
+    saveRankings(computePlayerRankings(updatedTournaments));
+  }
+
   function handleCreate(t: Tournament) {
-    setTournaments(prev => [t, ...prev]);
+    const updated = [t, ...tournaments];
+    setTournaments(updated);
     saveTournament(t);
+    recomputeRankings(updated);
     setView({ type: 'tournament', id: t.id });
   }
 
   function handleUpdate(t: Tournament) {
-    setTournaments(prev => prev.map(x => x.id === t.id ? t : x));
+    const updated = tournaments.map(x => x.id === t.id ? t : x);
+    setTournaments(updated);
     saveTournament(t);
+    recomputeRankings(updated);
   }
 
   function handleDelete(id: string) {
     deleteTournament(id);
+    recomputeRankings(tournaments.filter(t => t.id !== id));
     setView({ type: 'home' });
   }
 
@@ -125,7 +138,7 @@ export default function App() {
   }
 
   if (view.type === 'rankings') {
-    return <RankingsScreen tournaments={tournaments} isAdmin={isAdmin} onBack={() => setView({ type: 'home' })} />;
+    return <RankingsScreen rankings={rankings} isAdmin={isAdmin} onBack={() => setView({ type: 'home' })} />;
   }
 
   if (view.type === 'tournament') {

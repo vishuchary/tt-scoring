@@ -149,6 +149,8 @@ Scoring system (computed dynamically, not stored):
 - Same score = same rank; next rank skips (1, 1, 3, 4, …)
 - Point differential used as tiebreaker when game wins are tied in a match
 
+**Storage:** Rankings are persisted in Firebase at `/rankings/{playerName}`. Recomputed and saved automatically on every tournament create, update, or delete. `RankingsScreen` subscribes to `/rankings` directly — no local computation at read time.
+
 **Rankings screen (IPL-style):**
 - Top 3 ranks shown as gradient podium cards (gold/silver/bronze)
 - Tied players at same rank shown together with "Tied — Rank N" label

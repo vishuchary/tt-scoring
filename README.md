@@ -53,7 +53,7 @@ Tournament
                                                                team1Score, team2Score
 ```
 
-Standings and rankings are computed on the fly — nothing is stored pre-aggregated.
+Standings are computed on the fly. **Player rankings are stored in Firebase** at `/rankings` and recomputed whenever any tournament is created, updated, or deleted.
 
 ### Scoring rules
 
@@ -61,6 +61,10 @@ Standings and rankings are computed on the fly — nothing is stored pre-aggrega
 - At deuce (10-10) play continues until one team leads by 2
 - **Sets format** — match winner has more sets won; tiebreak by point differential
 - **Games format** — match winner has more games won; tiebreak by point differential
+
+### Player ranking storage
+
+Rankings are stored in Firebase at `/rankings/{playerName}` as `PlayerRanking` objects. They are recomputed from all tournament data and saved whenever a tournament is created, updated, or deleted. `RankingsScreen` reads directly from `/rankings` via a live Firebase subscription.
 
 ### Player ranking scoring
 

@@ -1,6 +1,7 @@
 import { ref, set, remove, onValue, off } from 'firebase/database';
 import { db } from './firebase';
 import type { Tournament, TournamentLevel, Group, Match, Player } from './types';
+import type { PlayerRanking } from './rankings';
 
 // Firebase drops empty arrays and converts arrays to objects with numeric keys.
 // This normalises them back to proper JS arrays on read.
@@ -92,4 +93,26 @@ export function savePlayer(p: Player): Promise<void> {
 export function deletePlayer(id: string): Promise<void> {
   return remove(ref(db, `players/${id}`))
     .catch(err => console.error('Firebase delete player failed:', err));
+}
+
+function sanitizeKey(name: string): string {
+  return name.replace(/[.#$[\]/]/g, '_');
+}
+
+export function saveRankings(rankings: PlayerRanking[]): Promise<void> {
+  const obj = Object.fromEntries(rankings.map(r => [sanitizeKey(r.name), r]));
+  return set(ref(db, 'rankings'), obj)
+    .catch(err => console.error('Firebase save rankings failed:', err));
+}
+
+export function subscribeRankings(callback: (rankings: PlayerRanking[]) => void): () => void {
+  const rankingsRef = ref(db, 'rankings');
+  const listener = onValue(rankingsRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) { callback([]); return; }
+    const list = Object.values(data) as PlayerRanking[];
+    list.sort((a, b) => b.points !== a.points ? b.points - a.points : b.gameWins - a.gameWins);
+    callback(list);
+  });
+  return () => off(rankingsRef, 'value', listener);
 }

@@ -1,8 +1,7 @@
-import type { Tournament } from '../types';
-import { computePlayerRankings, type PlayerRanking } from '../rankings';
+import type { PlayerRanking } from '../rankings';
 
 interface Props {
-  tournaments: Tournament[];
+  rankings: PlayerRanking[];
   isAdmin?: boolean;
   onBack: () => void;
 }
@@ -86,8 +85,7 @@ function RowCard({ r, rank, maxPts, isAdmin }: { r: PlayerRanking; rank: number;
 
 const PUBLIC_LIMIT = Number(import.meta.env.VITE_PUBLIC_RANKINGS_LIMIT ?? 5);
 
-export default function RankingsScreen({ tournaments, isAdmin, onBack }: Props) {
-  const rankings = computePlayerRankings(tournaments);
+export default function RankingsScreen({ rankings, isAdmin, onBack }: Props) {
   const ranked = assignRanks(rankings);
 
   // Non-admins see only players whose rank is within the public limit
