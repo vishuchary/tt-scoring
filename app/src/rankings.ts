@@ -117,17 +117,21 @@ export function computePlayerRankings(tournaments: Tournament[]): PlayerRanking[
         for (const match of group.matches) {
           if (!match.completed || match.games.length === 0) continue;
 
-          // Determine match winner using same logic as getMatchResult
-          let t1wins = 0, t2wins = 0;
+          let t1wins = 0, t2wins = 0, pointDiff = 0;
           for (const g of match.games) {
             const w = gameWinner(g.team1Score, g.team2Score);
             if (w === 'team1') t1wins++;
             else if (w === 'team2') t2wins++;
+            pointDiff += g.team1Score - g.team2Score;
           }
-          if (t1wins === t2wins) continue; // draw, no points
 
-          const winTeam = teamMap.get(t1wins > t2wins ? match.team1Id : match.team2Id);
-          const loseTeam = teamMap.get(t1wins > t2wins ? match.team2Id : match.team1Id);
+          let team1Wins: boolean;
+          if (t1wins !== t2wins) team1Wins = t1wins > t2wins;
+          else if (pointDiff !== 0) team1Wins = pointDiff > 0;
+          else continue; // true draw
+
+          const winTeam = teamMap.get(team1Wins ? match.team1Id : match.team2Id);
+          const loseTeam = teamMap.get(team1Wins ? match.team2Id : match.team1Id);
 
           for (const name of (winTeam?.players ?? [])) {
             if (!name) continue;
