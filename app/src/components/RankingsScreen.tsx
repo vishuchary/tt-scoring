@@ -84,14 +84,20 @@ function RowCard({ r, rank, maxPts, isAdmin }: { r: PlayerRanking; rank: number;
   );
 }
 
+const PUBLIC_LIMIT = Number(import.meta.env.VITE_PUBLIC_RANKINGS_LIMIT ?? 5);
+
 export default function RankingsScreen({ tournaments, isAdmin, onBack }: Props) {
   const rankings = computePlayerRankings(tournaments);
   const ranked = assignRanks(rankings);
-  const podium = ranked.filter(({ rank }) => rank <= 3);
-  const rest = ranked.filter(({ rank }) => rank > 3);
+
+  // Non-admins see only players whose rank is within the public limit
+  const visible = isAdmin ? ranked : ranked.filter(({ rank }) => rank <= PUBLIC_LIMIT);
+  const hiddenCount = ranked.length - visible.length;
+
+  const podium = visible.filter(({ rank }) => rank <= 3);
+  const rest = visible.filter(({ rank }) => rank > 3);
   const maxPts = rankings[0]?.points ?? 1;
 
-  // Within podium, group ties together visually (same rank = same card style, listed consecutively)
   const podiumRanks = [1, 2, 3] as const;
 
   return (
@@ -153,6 +159,11 @@ export default function RankingsScreen({ tournaments, isAdmin, onBack }: Props) 
           </>
         )}
 
+        {!isAdmin && hiddenCount > 0 && (
+          <p className="text-xs text-center text-gray-400 mt-6">
+            +{hiddenCount} more player{hiddenCount !== 1 ? 's' : ''} · login as admin to see all
+          </p>
+        )}
         {isAdmin && (
           <p className="text-xs text-center text-gray-400 mt-6">
             P = participation · G = game wins · B = winner/runner-up bonus
