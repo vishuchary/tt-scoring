@@ -6,6 +6,7 @@ interface Props {
   team1: Team;
   team2: Team;
   format: MatchFormat;
+  readOnly?: boolean;
   onSave: (match: Match) => void;
   onCancel: () => void;
 }
@@ -18,7 +19,7 @@ function gameWinner(s1: number, s2: number): 'team1' | 'team2' | null {
   return null;
 }
 
-export default function MatchEntry({ match, team1, team2, format, onSave, onCancel }: Props) {
+export default function MatchEntry({ match, team1, team2, format, readOnly = false, onSave, onCancel }: Props) {
   const count = GAME_COUNT[format];
   const initialGames: Game[] = Array.from({ length: count }, (_, i) => ({
     team1Score: match.games[i]?.team1Score ?? 0,
@@ -53,7 +54,7 @@ export default function MatchEntry({ match, team1, team2, format, onSave, onCanc
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Enter Scores</h2>
+            <h2 className="text-lg font-bold text-gray-900">{readOnly ? 'Match Scores' : 'Enter Scores'}</h2>
             <p className="text-sm text-gray-500">{format === 'sets' ? 'Best of 3 Sets' : '2 Games'}</p>
           </div>
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 text-2xl leading-none px-1">×</button>
@@ -79,12 +80,13 @@ export default function MatchEntry({ match, team1, team2, format, onSave, onCanc
                   type="number"
                   inputMode="numeric"
                   min={0}
+                  readOnly={readOnly}
                   className={`text-center border-2 rounded-xl py-3 text-2xl font-bold outline-none transition-colors ${
                     t1w ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 focus:border-blue-400'
-                  }`}
+                  } ${readOnly ? 'cursor-default' : ''}`}
                   value={g.team1Score}
-                  onFocus={e => e.target.select()}
-                  onChange={e => setScore(i, 'team1Score', e.target.value)}
+                  onFocus={e => !readOnly && e.target.select()}
+                  onChange={e => !readOnly && setScore(i, 'team1Score', e.target.value)}
                 />
                 <div className="text-center text-gray-400 text-sm font-medium">
                   {format === 'sets' ? `Set ${i + 1}` : `Game ${i + 1}`}
@@ -93,12 +95,13 @@ export default function MatchEntry({ match, team1, team2, format, onSave, onCanc
                   type="number"
                   inputMode="numeric"
                   min={0}
+                  readOnly={readOnly}
                   className={`text-center border-2 rounded-xl py-3 text-2xl font-bold outline-none transition-colors ${
                     t2w ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 focus:border-blue-400'
-                  }`}
+                  } ${readOnly ? 'cursor-default' : ''}`}
                   value={g.team2Score}
-                  onFocus={e => e.target.select()}
-                  onChange={e => setScore(i, 'team2Score', e.target.value)}
+                  onFocus={e => !readOnly && e.target.select()}
+                  onChange={e => !readOnly && setScore(i, 'team2Score', e.target.value)}
                 />
               </div>
             );
@@ -117,23 +120,29 @@ export default function MatchEntry({ match, team1, team2, format, onSave, onCanc
           )}
         </div>
 
-        {/* Fixed footer with Save */}
-        <div className="p-5 border-t border-gray-100 flex gap-3 shrink-0">
-          {match.completed && (
+        {/* Footer */}
+        {readOnly ? (
+          <div className="p-5 border-t border-gray-100 shrink-0">
+            <p className="text-center text-sm text-gray-400">🔒 View only</p>
+          </div>
+        ) : (
+          <div className="p-5 border-t border-gray-100 flex gap-3 shrink-0">
+            {match.completed && (
+              <button
+                onClick={() => onSave({ ...match, games: [], completed: false })}
+                className="px-4 py-3 rounded-xl text-sm text-red-400 hover:text-red-600 border border-red-200 hover:border-red-300 transition-colors"
+              >
+                Clear
+              </button>
+            )}
             <button
-              onClick={() => onSave({ ...match, games: [], completed: false })}
-              className="px-4 py-3 rounded-xl text-sm text-red-400 hover:text-red-600 border border-red-200 hover:border-red-300 transition-colors"
+              onClick={() => onSave({ ...match, games, completed: true })}
+              className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold text-lg hover:bg-blue-700 transition-colors"
             >
-              Clear
+              Save Score
             </button>
-          )}
-          <button
-            onClick={() => onSave({ ...match, games, completed: true })}
-            className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold text-lg hover:bg-blue-700 transition-colors"
-          >
-            Save Score
-          </button>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

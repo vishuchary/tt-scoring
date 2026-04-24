@@ -9,6 +9,7 @@ interface Props {
   allGroups?: Group[];
   format: MatchFormat;
   players?: Player[];
+  isLocked?: boolean;
   onUpdate: (g: Group) => void;
 }
 
@@ -60,7 +61,7 @@ function InlineInput({
   );
 }
 
-export default function GroupView({ group, allGroups, format, players = [], onUpdate }: Props) {
+export default function GroupView({ group, allGroups, format, players = [], isLocked = false, onUpdate }: Props) {
   const [tab, setTab] = useState<Tab>('matches');
   const [editMatch, setEditMatch] = useState<Match | null>(null);
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
@@ -133,6 +134,7 @@ export default function GroupView({ group, allGroups, format, players = [], onUp
           team1={teamMap[editMatch.team1Id]}
           team2={teamMap[editMatch.team2Id]}
           format={format}
+          readOnly={isLocked}
           onSave={handleMatchSave}
           onCancel={() => setEditMatch(null)}
         />
@@ -269,23 +271,29 @@ export default function GroupView({ group, allGroups, format, players = [], onUp
                 <div className="flex-1 space-y-1">
                   <div>
                     <p className="text-xs text-gray-400 mb-0.5">Team name</p>
-                    <InlineInput
+                    {isLocked ? (
+                      <span className="text-sm font-semibold text-gray-900">{team.name}</span>
+                    ) : <InlineInput
                       value={team.name}
                       onSave={name => updateTeamName(team, name)}
                       className="text-sm font-semibold text-gray-900 w-full"
-                    />
+                    />}
                   </div>
                   {team.players.map((player, pi) => (
                     <div key={pi}>
                       <p className="text-xs text-gray-400 mb-0.5">
                         {team.players.length > 1 ? `Player ${pi + 1}` : 'Player'}
                       </p>
-                      <button
-                        onClick={() => setPickerTarget({ teamId: team.id, playerIdx: pi })}
-                        className="text-sm text-blue-600 hover:text-blue-800 text-left truncate w-full"
-                      >
-                        {player || <span className="text-gray-400">Select player…</span>}
-                      </button>
+                      {isLocked ? (
+                        <span className="text-sm text-gray-700">{player}</span>
+                      ) : (
+                        <button
+                          onClick={() => setPickerTarget({ teamId: team.id, playerIdx: pi })}
+                          className="text-sm text-blue-600 hover:text-blue-800 text-left truncate w-full"
+                        >
+                          {player || <span className="text-gray-400">Select player…</span>}
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
