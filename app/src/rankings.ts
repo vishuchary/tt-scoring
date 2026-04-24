@@ -1,4 +1,12 @@
-import type { Group, Match, MatchFormat, Team, TeamStats } from './types';
+import type { Group, Match, MatchFormat, Team, TeamStats, Tournament } from './types';
+
+export interface PlayerRanking {
+  name: string;
+  points: number;
+  wins: number;
+  losses: number;
+  matchesPlayed: number;
+}
 
 function gameWinner(s1: number, s2: number): 'team1' | 'team2' | null {
   if (s1 >= 11 && s1 - s2 >= 2) return 'team1';
@@ -92,6 +100,57 @@ export function computeCrossGroupRankings(groups: Group[], format: MatchFormat):
   });
   all.forEach((s, i) => { s.rank = i + 1; });
   return all;
+}
+
+export function computePlayerRankings(tournaments: Tournament[]): PlayerRanking[] {
+  const map = new Map<string, PlayerRanking>();
+
+  function get(name: string): PlayerRanking {
+    if (!map.has(name)) map.set(name, { name, points: 0, wins: 0, losses: 0, matchesPlayed: 0 });
+    return map.get(name)!;
+  }
+
+  for (const t of tournaments) {
+    for (const level of t.levels) {
+      for (const group of level.groups) {
+        const teamMap = new Map(group.teams.map(tm => [tm.id, tm]));
+        for (const match of group.matches) {
+          if (!match.completed || match.games.length === 0) continue;
+
+          // Determine match winner using same logic as getMatchResult
+          let t1wins = 0, t2wins = 0;
+          for (const g of match.games) {
+            const w = gameWinner(g.team1Score, g.team2Score);
+            if (w === 'team1') t1wins++;
+            else if (w === 'team2') t2wins++;
+          }
+          if (t1wins === t2wins) continue; // draw, no points
+
+          const winTeam = teamMap.get(t1wins > t2wins ? match.team1Id : match.team2Id);
+          const loseTeam = teamMap.get(t1wins > t2wins ? match.team2Id : match.team1Id);
+
+          for (const name of (winTeam?.players ?? [])) {
+            if (!name) continue;
+            const s = get(name);
+            s.wins++;
+            s.points += 2;
+            s.matchesPlayed++;
+          }
+          for (const name of (loseTeam?.players ?? [])) {
+            if (!name) continue;
+            const s = get(name);
+            s.losses++;
+            s.points -= 1;
+            s.matchesPlayed++;
+          }
+        }
+      }
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) =>
+    b.points !== a.points ? b.points - a.points : b.wins - a.wins
+  );
 }
 
 export function generateMatches(teams: Team[]): { team1Id: string; team2Id: string }[] {

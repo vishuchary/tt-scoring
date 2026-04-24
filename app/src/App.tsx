@@ -4,13 +4,16 @@ import { subscribeTournaments, saveTournament, deleteTournament, subscribePlayer
 import TournamentSetup from './components/TournamentSetup';
 import TournamentView from './components/TournamentView';
 import PlayersScreen from './components/PlayersScreen';
+import RankingsScreen from './components/RankingsScreen';
+import AdminLogin from './components/AdminLogin';
 import './index.css';
 
 type View =
   | { type: 'home' }
   | { type: 'new' }
   | { type: 'tournament'; id: string }
-  | { type: 'players' };
+  | { type: 'players' }
+  | { type: 'rankings' };
 
 function getTournamentStatus(t: Tournament): 'not-started' | 'in-progress' | 'completed' {
   const allMatches = t.levels.flatMap(l => l.groups.flatMap(g => g.matches));
@@ -45,6 +48,9 @@ function TournamentCard({ t, onClick }: { t: Tournament; onClick: () => void }) 
             {status === 'completed' && (
               <span className="shrink-0 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Done</span>
             )}
+            {status === 'completed' && (
+              <span className="shrink-0 text-gray-400 text-sm" title="Locked">🔒</span>
+            )}
           </div>
           <p className="text-sm text-gray-500">
             {levelCount > 1 ? `${levelCount} levels` : `${level1Groups} group${level1Groups !== 1 ? 's' : ''}`} &middot;{' '}
@@ -67,6 +73,8 @@ export default function App() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [view, setView] = useState<View>({ type: 'home' });
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
   const hasAutoNavigated = useRef(false);
 
   useEffect(() => {
@@ -116,6 +124,10 @@ export default function App() {
     return <PlayersScreen players={players} onBack={() => setView({ type: 'home' })} />;
   }
 
+  if (view.type === 'rankings') {
+    return <RankingsScreen tournaments={tournaments} onBack={() => setView({ type: 'home' })} />;
+  }
+
   if (view.type === 'tournament') {
     const t = tournaments.find(x => x.id === view.id);
     if (!t) return null;
@@ -123,9 +135,11 @@ export default function App() {
       <TournamentView
         tournament={t}
         players={players}
+        isAdmin={isAdmin}
         onUpdate={handleUpdate}
         onDelete={() => handleDelete(t.id)}
         onBack={() => setView({ type: 'home' })}
+        onRequestAdmin={() => setShowAdminLogin(true)}
       />
     );
   }
@@ -135,6 +149,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {showAdminLogin && (
+        <AdminLogin
+          onSuccess={() => { setIsAdmin(true); setShowAdminLogin(false); }}
+          onCancel={() => setShowAdminLogin(false)}
+        />
+      )}
+
       {/* Banner */}
       <div className="relative w-full h-48 sm:h-64 overflow-hidden">
         <img
@@ -143,26 +164,50 @@ export default function App() {
           className="w-full h-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-5">
+        <div className="absolute bottom-0 left-0 right-0 p-5 flex items-end justify-between">
           <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow">🏓 Mountain House TT Club</h1>
+          {isAdmin && (
+            <button
+              onClick={() => setIsAdmin(false)}
+              className="text-xs bg-white/20 text-white border border-white/30 px-3 py-1.5 rounded-lg backdrop-blur hover:bg-white/30 transition-colors"
+            >
+              Admin ✓ · Exit
+            </button>
+          )}
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto p-6">
         <div className="flex items-center justify-end gap-2 mb-8">
           <div className="flex gap-2">
+            {!isAdmin && (
+              <button
+                onClick={() => setShowAdminLogin(true)}
+                className="bg-white border border-gray-200 text-gray-500 px-4 py-2.5 rounded-lg font-medium hover:border-gray-300 transition-colors text-sm"
+              >
+                🔑 Admin
+              </button>
+            )}
+            <button
+              onClick={() => setView({ type: 'rankings' })}
+              className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-lg font-medium hover:border-gray-300 transition-colors text-sm"
+            >
+              Rankings
+            </button>
             <button
               onClick={() => setView({ type: 'players' })}
               className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-lg font-medium hover:border-gray-300 transition-colors text-sm"
             >
               Players {players.length > 0 && <span className="text-gray-400">({players.length})</span>}
             </button>
-            <button
-              onClick={() => setView({ type: 'new' })}
-              className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-            >
-              + New
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setView({ type: 'new' })}
+                className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                + New
+              </button>
+            )}
           </div>
         </div>
 
@@ -170,7 +215,7 @@ export default function App() {
           <div className="text-center py-20 text-gray-400">
             <div className="text-6xl mb-4">🏓</div>
             <p className="text-xl">No tournaments yet</p>
-            <p className="mt-2">Create your first tournament to get started</p>
+            <p className="mt-2">{isAdmin ? 'Create your first tournament to get started' : 'Login as admin to create tournaments'}</p>
           </div>
         ) : (
           <div className="space-y-8">
