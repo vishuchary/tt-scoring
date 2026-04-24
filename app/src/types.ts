@@ -40,6 +40,7 @@ export interface TournamentLevel {
   id: string;
   name: string;
   groups: Group[];
+  setCount?: number; // overrides tournament-level setCount for this level
 }
 
 export interface Tournament {

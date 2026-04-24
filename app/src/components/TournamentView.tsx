@@ -26,14 +26,16 @@ function serpentineIdx(teamIdx: number, groupCount: number): number {
 function AdvanceSetup({
   levelGroups,
   format,
+  currentSetCount,
   nextLevelNum,
   onCreate,
   onCancel,
 }: {
   levelGroups: Group[];
   format: MatchFormat;
+  currentSetCount: number;
   nextLevelNum: number;
-  onCreate: (selectedTeamIds: string[], groupCount: number, assignments: number[]) => void;
+  onCreate: (selectedTeamIds: string[], groupCount: number, assignments: number[], setCount: number) => void;
   onCancel: () => void;
 }) {
   const allStats = computeCrossGroupRankings(levelGroups, format);
@@ -44,6 +46,7 @@ function AdvanceSetup({
   );
   const [quickN, setQuickN] = useState(defaultN);
   const [groupCount, setGroupCount] = useState(1);
+  const [setCount, setSetCount] = useState(currentSetCount);
   const [step, setStep] = useState<'select' | 'assign'>('select');
   const [assignments, setAssignments] = useState<number[]>([]);
 
@@ -140,7 +143,7 @@ function AdvanceSetup({
 
           <div className="px-5 py-4 border-t border-gray-100 shrink-0">
             <button
-              onClick={() => onCreate(selectedStats.map(s => s.team.id), groupCount, assignments)}
+              onClick={() => onCreate(selectedStats.map(s => s.team.id), groupCount, assignments, setCount)}
               disabled={groupDist.some(g => g.length === 0)}
               className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-40 transition-colors"
             >
@@ -231,11 +234,28 @@ function AdvanceSetup({
               onChange={e => setGroupCount(Math.min(maxGroups, Math.max(1, parseInt(e.target.value) || 1)))}
             />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {format === 'sets' ? 'Number of sets (odd)' : 'Number of games'}
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {(format === 'sets' ? [1, 3, 5, 7, 9] : [1, 2, 3, 4, 5, 6]).map(n => (
+                <button
+                  key={n}
+                  onClick={() => setSetCount(n)}
+                  className={`w-10 h-10 rounded-lg border-2 font-semibold text-sm transition-colors ${setCount === n ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-700 hover:border-blue-200'}`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="px-5 py-4 border-t border-gray-100 shrink-0">
           <button
-            onClick={groupCount > 1 ? goToAssign : () => onCreate(selectedStats.map(s => s.team.id), groupCount, selectedStats.map(() => 0))}
+            onClick={groupCount > 1 ? goToAssign : () => onCreate(selectedStats.map(s => s.team.id), groupCount, selectedStats.map(() => 0), setCount)}
             disabled={selectedCount < 2}
             className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-40 transition-colors"
           >
@@ -302,7 +322,7 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
     });
   }
 
-  function handleCreateNextLevel(selectedTeamIds: string[], groupCount: number, assignments: number[]) {
+  function handleCreateNextLevel(selectedTeamIds: string[], groupCount: number, assignments: number[], setCount: number) {
     const allStats = computeCrossGroupRankings(level.groups, tournament.format);
     const advancing = allStats.filter(s => selectedTeamIds.includes(s.team.id));
     const nextLevelNum = tournament.levels.length + 1;
@@ -332,7 +352,7 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
         };
       });
 
-    const newLevel: TournamentLevel = { id: uid(), name: newLevelName, groups: newGroups };
+    const newLevel: TournamentLevel = { id: uid(), name: newLevelName, groups: newGroups, setCount };
     onUpdate({ ...tournament, levels: [...tournament.levels, newLevel] });
     setShowAdvance(false);
   }
@@ -351,6 +371,7 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
         <AdvanceSetup
           levelGroups={level.groups}
           format={tournament.format}
+          currentSetCount={level.setCount ?? tournament.setCount ?? (tournament.format === 'sets' ? 3 : 2)}
           nextLevelNum={tournament.levels.length + 1}
           onCreate={handleCreateNextLevel}
           onCancel={() => setShowAdvance(false)}
@@ -476,7 +497,7 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
             group={selectedGroup}
             allGroups={level?.groups}
             format={tournament.format}
-            setCount={tournament.setCount ?? (tournament.format === 'sets' ? 3 : 2)}
+            setCount={level?.setCount ?? tournament.setCount ?? (tournament.format === 'sets' ? 3 : 2)}
             players={players}
             isLocked={isLocked}
             onUpdate={g => handleGroupUpdate(viewLevel, g)}
