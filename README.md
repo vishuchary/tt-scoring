@@ -1,6 +1,6 @@
-# TT Tournament Scoring
+# Mountain House TT Club — Scoring App
 
-A real-time ping pong tournament scoring app. Runs as a PWA installable on iPhone, with live score sync across all players via Firebase.
+A real-time table tennis tournament scoring PWA for Mountain House TT Club. Players view live scores from any device. Admins create and manage tournaments via a PIN-protected admin mode.
 
 **Live app:** https://app-iota-ashen.vercel.app
 
@@ -12,7 +12,7 @@ A real-time ping pong tournament scoring app. Runs as a PWA installable on iPhon
 Browser / iPhone PWA
         │
         ▼
-React + Vite (app/)
+React 19 + Vite 8 (app/)
         │
         ▼
 Firebase Realtime Database
@@ -25,64 +25,64 @@ All connected clients update instantly
 
 | File | Purpose |
 |------|---------|
-| `src/App.tsx` | Root component — manages view routing (home / new / tournament), Firebase subscription, CRUD handlers |
-| `src/types.ts` | TypeScript data model: Tournament, Group, Team, Match, Game, TeamStats |
-| `src/firebase.ts` | Firebase app initialisation — exports `db` |
-| `src/store.ts` | Database API — `subscribeTournaments`, `saveTournament`, `deleteTournament`; normalises Firebase array serialisation on read |
-| `src/rankings.ts` | Pure logic — `generateMatches` (round-robin), `computeStandings`, `gameWinner` |
-| `src/components/TournamentSetup.tsx` | Multi-step tournament creation form (name/format/groups → teams/players) |
-| `src/components/TournamentView.tsx` | Tournament detail — group tabs, delegates to GroupView |
-| `src/components/GroupView.tsx` | Match list + standings table for a group; opens MatchEntry modal |
-| `src/components/MatchEntry.tsx` | Score entry bottom sheet; highlights winning scores in real time |
+| `src/App.tsx` | Root — view routing, Firebase subscriptions, admin state |
+| `src/types.ts` | TypeScript data model: Tournament, TournamentLevel, Group, Team, Match, Game, Player |
+| `src/firebase.ts` | Firebase app init — exports `db` |
+| `src/store.ts` | Firebase CRUD + `toArray()` normaliser for Firebase array serialisation |
+| `src/rankings.ts` | Pure logic — `generateMatches`, `computeStandings`, `computePlayerRankings` |
+| `src/components/TournamentSetup.tsx` | 3-step creation wizard: meta → select players → configure groups |
+| `src/components/TournamentView.tsx` | Tournament detail — level tabs, lock/admin, advancement sheet |
+| `src/components/GroupView.tsx` | Matches / Standings / Teams tabs within a group |
+| `src/components/MatchEntry.tsx` | Score entry bottom sheet (readOnly prop for locked view) |
+| `src/components/PlayerPicker.tsx` | Player selection modal with used-name exclusion |
+| `src/components/PlayersScreen.tsx` | Player profile management (add/edit/delete) |
+| `src/components/RankingsScreen.tsx` | IPL-style player leaderboard |
+| `src/components/AdminLogin.tsx` | PIN entry modal |
 
 ### Data model
 
 ```
 Tournament
-  id, name, format ('sets' | 'games'), createdAt
-  └── groups[]
-        id, name
-        ├── teams[]   id, name, type ('singles'|'doubles'), players[]
-        └── matches[] id, team1Id, team2Id, completed, games[]
-                                                           team1Score, team2Score
+  id, name, format ('sets'|'games'), matchType ('singles'|'doubles'), createdAt
+  └── levels[]                          ← TournamentLevel
+        id, name ('Level 1', 'Finals', …)
+        └── groups[]
+              id, name ('Group A', …)
+              ├── teams[]    id, name, type, players: string[]
+              └── matches[]  id, team1Id, team2Id, completed, games[]
+                                                               team1Score, team2Score
 ```
 
-Standings are computed on the fly from match data — nothing is stored pre-aggregated.
+Standings and rankings are computed on the fly — nothing is stored pre-aggregated.
 
 ### Scoring rules
 
 - A game is won when a team reaches **≥ 11 points** with a **≥ 2 point lead**
-- At deuce (10-10) play continues until one team leads by 2 (12-10, 13-11, …)
+- At deuce (10-10) play continues until one team leads by 2
 - **Sets format** — match winner has more sets won; tiebreak by point differential
 - **Games format** — match winner has more games won; tiebreak by point differential
 
-### Real-time sync flow
+### Player ranking scoring
+
+| Event | Points |
+|-------|--------|
+| Participate in a level | +2 |
+| Win an individual game | +2 |
+| Tournament winner | +2 bonus |
+| Tournament runner-up | +1 bonus |
+
+Tied players get the same rank; next rank skips (1, 1, 3, …). Non-admins see top N players only (configurable via `VITE_PUBLIC_RANKINGS_LIMIT`, default 5). Score breakdown (P/G/B) visible to admins only.
+
+### Real-time sync
 
 ```
-User saves score
-      │
-      ▼
-Optimistic local state update (instant UI)
-      │
-      ▼
-saveTournament() → Firebase set()
-      │
-      ▼
-Firebase onValue() fires on all clients
-      │
-      ▼
-subscribeTournaments callback → setTournaments()
-      │
-      ▼
-React re-renders with confirmed data
+User saves score → optimistic local state update (instant)
+                 → saveTournament() → Firebase set()
+                 → Firebase onValue() fires on all clients
+                 → React re-renders with confirmed data
 ```
 
-Firebase arrays are normalised on read because Firebase drops empty arrays and returns non-empty arrays as objects with numeric keys (`store.ts: toArray()`).
-
-### Home screen behaviour
-
-- On load, auto-navigates to the most recent **in-progress** tournament (has at least one completed match but not all)
-- Otherwise shows the home screen split into **In Progress** and **History** sections
+Firebase arrays are normalised on read because Firebase drops empty arrays and returns non-empty arrays as `{"0":a,"1":b}` objects (`store.ts: toArray()`).
 
 ---
 
@@ -91,9 +91,9 @@ Firebase arrays are normalised on read because Firebase drops empty arrays and r
 ```bash
 cd app
 npm install
-npm run dev          # localhost:5173
+npm run dev            # localhost:5173
 npm run dev -- --host  # + network URL for iPhone testing (same Wi-Fi)
-npm run build        # production build
+npm run build          # production build
 ```
 
 **iPhone testing (local):** open the Network URL in Safari → Share → Add to Home Screen.
@@ -102,18 +102,17 @@ npm run build        # production build
 
 ## Deployment
 
-Hosted on Vercel, connected to the GitHub repo. Every push to `main` auto-deploys.
+Hosted on Vercel. Manual deploy:
 
-**Manual deploy:**
 ```bash
 cd app
-vercel --prod
+vercel --prod --yes
 ```
 
-**Firebase project:** `tt-scoring-60039`  
+**Firebase project:** `tt-scoring-60039`
 Database URL: `https://tt-scoring-60039-default-rtdb.firebaseio.com`
 
-Firebase rules must allow read/write (set in the Firebase console under Realtime Database → Rules):
+Firebase rules (set in Firebase console → Realtime Database → Rules):
 ```json
 {
   "rules": {
@@ -125,6 +124,18 @@ Firebase rules must allow read/write (set in the Firebase console under Realtime
 
 ---
 
+## Environment variables
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `VITE_ADMIN_PIN` | Admin login PIN | `1234` |
+| `VITE_PUBLIC_RANKINGS_LIMIT` | Max players shown in rankings for non-admins | `5` |
+
+Set in Vercel: Project → Settings → Environment Variables.  
+Local: edit `app/.env`.
+
+---
+
 ## Key dependencies
 
 | Package | Version | Purpose |
@@ -132,6 +143,6 @@ Firebase rules must allow read/write (set in the Firebase console under Realtime
 | react | ^19 | UI |
 | firebase | ^12 | Realtime Database |
 | tailwindcss | ^4 | Styling |
-| vite-plugin-pwa | ^1.2 | Service worker, offline support, installable |
+| vite-plugin-pwa | ^1.2 | Service worker, offline, installable |
 | vite | ^8 | Build tool |
 | typescript | ~6 | Type safety |
