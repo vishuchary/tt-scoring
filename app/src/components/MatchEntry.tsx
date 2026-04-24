@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Match, Team, MatchFormat, Game } from '../types';
+import { teamDisplayName } from '../rankings';
 
 interface Props {
   match: Match;
@@ -39,8 +40,8 @@ export default function MatchEntry({ match, team1, team2, format, readOnly = fal
       if (w === 'team1') t1wins++;
       else if (w === 'team2') t2wins++;
     }
-    if (t1wins > t2wins) return team1.name;
-    if (t2wins > t1wins) return team2.name;
+    if (t1wins > t2wins) return teamDisplayName(team1);
+    if (t2wins > t1wins) return teamDisplayName(team2);
     return null;
   }
 
@@ -64,9 +65,9 @@ export default function MatchEntry({ match, team1, team2, format, readOnly = fal
         <div className="p-5 space-y-4">
           {/* Team name headers */}
           <div className="grid grid-cols-3 gap-2 text-sm font-semibold text-gray-700">
-            <div className="text-center truncate">{team1.name}</div>
+            <div className="text-center truncate">{teamDisplayName(team1)}</div>
             <div />
-            <div className="text-center truncate">{team2.name}</div>
+            <div className="text-center truncate">{teamDisplayName(team2)}</div>
           </div>
 
           {/* Score rows */}

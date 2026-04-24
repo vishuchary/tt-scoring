@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Tournament, TournamentLevel, Group, Match, Team, MatchFormat, Player } from '../types';
-import { computeCrossGroupRankings, generateMatches } from '../rankings';
+import { computeCrossGroupRankings, generateMatches, teamDisplayName } from '../rankings';
 import GroupView from './GroupView';
 
 function uid() {
@@ -111,7 +111,7 @@ function AdvanceSetup({
                   >
                     <span className="w-5 text-center text-xs font-semibold text-gray-500">{i + 1}</span>
                     <div className="flex-1 min-w-0 text-left">
-                      <span className="font-medium text-gray-900">{s.team.name}</span>
+                      <span className="font-medium text-gray-900">{teamDisplayName(s.team)}</span>
                       {grpName && <span className="text-xs text-gray-400 ml-1.5">{grpName}</span>}
                     </div>
                     <span className="text-gray-500 text-xs">{s.matchWins}W-{s.matchLosses}L</span>
@@ -387,7 +387,7 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
             {isFinals && winner ? (
               <div className="text-center py-2">
                 <p className="text-5xl mb-3">🏆</p>
-                <p className="text-2xl font-bold text-yellow-800">{winner.name}</p>
+                <p className="text-2xl font-bold text-yellow-800">{teamDisplayName(winner)}</p>
                 <p className="text-sm text-yellow-700 mt-1">Tournament Champion!</p>
               </div>
             ) : (

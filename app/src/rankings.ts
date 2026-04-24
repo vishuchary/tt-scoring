@@ -1,5 +1,17 @@
 import type { Group, Match, MatchFormat, Team, TeamStats, Tournament } from './types';
 
+function shortName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/);
+  const base = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+  return base.slice(0, 8);
+}
+
+export function teamDisplayName(team: Team): string {
+  const players = team.players.filter(Boolean);
+  if (players.length === 0) return team.name;
+  return players.map(shortName).join('_');
+}
+
 export interface PlayerRanking {
   name: string;
   points: number;        // total score

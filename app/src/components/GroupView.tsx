@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Group, Match, MatchFormat, Team, Player } from '../types';
-import { computeStandings } from '../rankings';
+import { computeStandings, teamDisplayName } from '../rankings';
 import MatchEntry from './MatchEntry';
 import PlayerPicker from './PlayerPicker';
 
@@ -187,7 +187,7 @@ export default function GroupView({ group, allGroups, format, players = [], isLo
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4 flex-1">
-                    <span className="font-medium text-gray-900 flex-1 text-right">{t1?.name}</span>
+                    <span className="font-medium text-gray-900 flex-1 text-right">{t1 ? teamDisplayName(t1) : ''}</span>
                     {match.completed ? (
                       <div className="text-center min-w-[100px]">
                         <div className="text-sm font-mono text-gray-700">
@@ -199,7 +199,7 @@ export default function GroupView({ group, allGroups, format, players = [], isLo
                     ) : (
                       <span className="text-gray-300 text-xl font-light min-w-[100px] text-center">vs</span>
                     )}
-                    <span className="font-medium text-gray-900 flex-1">{t2?.name}</span>
+                    <span className="font-medium text-gray-900 flex-1">{t2 ? teamDisplayName(t2) : ''}</span>
                   </div>
                   <div className="ml-4">
                     {match.completed
@@ -239,7 +239,7 @@ export default function GroupView({ group, allGroups, format, players = [], isLo
                     {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">{s.team.name}</div>
+                    <div className="font-medium text-gray-900">{teamDisplayName(s.team)}</div>
                     {s.team.players.length > 0 && (
                       <div className="text-xs text-gray-400">{s.team.players.join(' / ')}</div>
                     )}
@@ -272,7 +272,7 @@ export default function GroupView({ group, allGroups, format, players = [], isLo
                   <div>
                     <p className="text-xs text-gray-400 mb-0.5">Team name</p>
                     {isLocked ? (
-                      <span className="text-sm font-semibold text-gray-900">{team.name}</span>
+                      <span className="text-sm font-semibold text-gray-900">{teamDisplayName(team)}</span>
                     ) : <InlineInput
                       value={team.name}
                       onSave={name => updateTeamName(team, name)}

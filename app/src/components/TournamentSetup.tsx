@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Tournament, TournamentLevel, Group, Team, MatchFormat, Player } from '../types';
-import { generateMatches } from '../rankings';
+import { generateMatches, teamDisplayName } from '../rankings';
 
 interface Props {
   seq: number;
@@ -42,17 +42,13 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
   const [teamOrder, setTeamOrder] = useState<string[]>([]);
   const [groupAssignments, setGroupAssignments] = useState<number[]>([]); // groupAssignments[teamIdx] = groupIdx
 
-  function shortName(fullName: string): string {
-    const parts = fullName.trim().split(/\s+/);
-    const base = parts.length > 1 ? parts[parts.length - 1] : parts[0];
-    return base.slice(0, 6);
-  }
-
   function teamsFromOrder(order: string[]): { name: string; players: string[] }[] {
     if (matchType === 'singles') return order.map(p => ({ name: p, players: [p] }));
     const t = [];
-    for (let i = 0; i + 1 < order.length; i += 2)
-      t.push({ name: `${shortName(order[i])}_${shortName(order[i + 1])}`, players: [order[i], order[i + 1]] });
+    for (let i = 0; i + 1 < order.length; i += 2) {
+      const players = [order[i], order[i + 1]];
+      t.push({ name: teamDisplayName({ id: '', name: '', type: 'doubles', players }), players });
+    }
     return t;
   }
 
