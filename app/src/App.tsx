@@ -7,11 +7,13 @@ import TournamentView from './components/TournamentView';
 import PlayersScreen from './components/PlayersScreen';
 import RankingsScreen from './components/RankingsScreen';
 import AdminLogin from './components/AdminLogin';
+import ImportCSV from './components/ImportCSV';
 import './index.css';
 
 type View =
   | { type: 'home' }
   | { type: 'new' }
+  | { type: 'import' }
   | { type: 'tournament'; id: string }
   | { type: 'players' }
   | { type: 'rankings' };
@@ -141,6 +143,16 @@ export default function App() {
     );
   }
 
+  if (view.type === 'import') {
+    return (
+      <ImportCSV
+        seq={tournaments.length + 1}
+        onCreate={handleCreate}
+        onCancel={() => setView({ type: 'home' })}
+      />
+    );
+  }
+
   if (view.type === 'players') {
     return <PlayersScreen players={players} onBack={() => setView({ type: 'home' })} />;
   }
@@ -222,12 +234,20 @@ export default function App() {
               Players {players.length > 0 && <span className="text-gray-400">({players.length})</span>}
             </button>
             {isAdmin && (
-              <button
-                onClick={() => setView({ type: 'new' })}
-                className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-              >
-                + New
-              </button>
+              <>
+                <button
+                  onClick={() => setView({ type: 'import' })}
+                  className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-lg font-medium hover:border-gray-300 transition-colors text-sm"
+                >
+                  Import CSV
+                </button>
+                <button
+                  onClick={() => setView({ type: 'new' })}
+                  className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                >
+                  + New
+                </button>
+              </>
             )}
           </div>
         </div>
