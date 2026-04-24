@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Tournament, Group, Team, MatchFormat, Player } from '../types';
+import type { Tournament, TournamentLevel, Group, Team, MatchFormat, Player } from '../types';
 import { generateMatches } from '../rankings';
 import PlayerPicker from './PlayerPicker';
 
@@ -120,11 +120,13 @@ export default function TournamentSetup({ seq, players, onCreate, onCancel }: Pr
       return { id: uid(), name: g.name, teams, matches };
     });
 
+    const level1: TournamentLevel = { id: uid(), name: 'Level 1', groups: builtGroups };
     onCreate({
       id: uid(),
       name: name.trim() || `Tournament_${seq}`,
       format,
-      groups: builtGroups,
+      matchType,
+      levels: [level1],
       createdAt: Date.now(),
     });
   }

@@ -83,6 +83,17 @@ export function computeStandings(group: Group, format: MatchFormat): TeamStats[]
   return standings;
 }
 
+export function computeCrossGroupRankings(groups: Group[], format: MatchFormat): TeamStats[] {
+  const all = groups.flatMap(g => computeStandings(g, format));
+  all.sort((a, b) => {
+    if (b.matchWins !== a.matchWins) return b.matchWins - a.matchWins;
+    if (b.setWins !== a.setWins) return b.setWins - a.setWins;
+    return b.pointDiff - a.pointDiff;
+  });
+  all.forEach((s, i) => { s.rank = i + 1; });
+  return all;
+}
+
 export function generateMatches(teams: Team[]): { team1Id: string; team2Id: string }[] {
   const pairs: { team1Id: string; team2Id: string }[] = [];
   for (let i = 0; i < teams.length; i++) {

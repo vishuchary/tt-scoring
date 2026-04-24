@@ -36,11 +36,18 @@ export interface Group {
   matches: Match[];
 }
 
+export interface TournamentLevel {
+  id: string;
+  name: string;
+  groups: Group[];
+}
+
 export interface Tournament {
   id: string;
   name: string;
   format: MatchFormat;
-  groups: Group[];
+  matchType?: 'singles' | 'doubles';
+  levels: TournamentLevel[];
   createdAt: number;
 }
 

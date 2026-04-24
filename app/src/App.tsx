@@ -13,7 +13,7 @@ type View =
   | { type: 'players' };
 
 function getTournamentStatus(t: Tournament): 'not-started' | 'in-progress' | 'completed' {
-  const allMatches = t.groups.flatMap(g => g.matches);
+  const allMatches = t.levels.flatMap(l => l.groups.flatMap(g => g.matches));
   if (allMatches.length === 0) return 'not-started';
   const completedCount = allMatches.filter(m => m.completed).length;
   if (completedCount === 0) return 'not-started';
@@ -23,8 +23,10 @@ function getTournamentStatus(t: Tournament): 'not-started' | 'in-progress' | 'co
 
 function TournamentCard({ t, onClick }: { t: Tournament; onClick: () => void }) {
   const status = getTournamentStatus(t);
-  const allMatches = t.groups.flatMap(g => g.matches);
+  const allMatches = t.levels.flatMap(l => l.groups.flatMap(g => g.matches));
   const completedCount = allMatches.filter(m => m.completed).length;
+  const levelCount = t.levels.length;
+  const level1Groups = t.levels[0]?.groups.length ?? 0;
 
   return (
     <div
@@ -45,7 +47,7 @@ function TournamentCard({ t, onClick }: { t: Tournament; onClick: () => void }) 
             )}
           </div>
           <p className="text-sm text-gray-500">
-            {t.groups.length} group{t.groups.length !== 1 ? 's' : ''} &middot;{' '}
+            {levelCount > 1 ? `${levelCount} levels` : `${level1Groups} group${level1Groups !== 1 ? 's' : ''}`} &middot;{' '}
             {t.format === 'sets' ? 'Best of 3 Sets' : '2 Games'} &middot;{' '}
             {new Date(t.createdAt).toLocaleDateString()}
           </p>

@@ -1,6 +1,6 @@
 import { ref, set, remove, onValue, off } from 'firebase/database';
 import { db } from './firebase';
-import type { Tournament, Group, Match, Player } from './types';
+import type { Tournament, TournamentLevel, Group, Match, Player } from './types';
 
 // Firebase drops empty arrays and converts arrays to objects with numeric keys.
 // This normalises them back to proper JS arrays on read.
@@ -10,16 +10,39 @@ function toArray<T>(val: unknown): T[] {
   return Object.values(val as object) as T[];
 }
 
-function normalizeTournament(t: Tournament): Tournament {
+function normalizeGroup(g: any): Group {
   return {
-    ...t,
-    groups: toArray<Group>(t.groups).map(g => ({
-      ...g,
-      teams: toArray(g.teams),
-      matches: toArray<Match>(g.matches).map(m => ({
-        ...m,
-        games: toArray(m.games),
-      })),
+    ...g,
+    teams: toArray(g.teams),
+    matches: toArray<Match>(g.matches).map((m: any) => ({
+      ...m,
+      games: toArray(m.games),
+    })),
+  };
+}
+
+function normalizeTournament(raw: any): Tournament {
+  // Old format: groups stored directly on tournament (before multi-level support)
+  if (raw.groups && !raw.levels) {
+    return {
+      id: raw.id,
+      name: raw.name,
+      format: raw.format,
+      matchType: raw.matchType,
+      createdAt: raw.createdAt,
+      levels: [{
+        id: raw.id + '_l1',
+        name: 'Level 1',
+        groups: toArray<Group>(raw.groups).map(normalizeGroup),
+      }],
+    };
+  }
+
+  return {
+    ...raw,
+    levels: toArray<TournamentLevel>(raw.levels).map((level: any) => ({
+      ...level,
+      groups: toArray<Group>(level.groups).map(normalizeGroup),
     })),
   };
 }
