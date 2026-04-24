@@ -276,6 +276,8 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
   const [nameInput, setNameInput] = useState(tournament.name);
   const [showAdvance, setShowAdvance] = useState(false);
   const [editingCount, setEditingCount] = useState(false);
+  const [editingLevelName, setEditingLevelName] = useState(false);
+  const [levelNameInput, setLevelNameInput] = useState('');
   const nameRef = useRef<HTMLInputElement>(null);
   const prevLevelsLength = useRef(tournament.levels.length);
 
@@ -459,9 +461,15 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
                 <button
                   key={l.id}
                   onClick={() => {
-                    setViewLevel(i);
-                    setSelectedGroupId(l.groups[0]?.id ?? null);
-                    setEditingCount(false);
+                    if (i === viewLevel && isAdmin) {
+                      setLevelNameInput(l.name);
+                      setEditingLevelName(true);
+                    } else {
+                      setViewLevel(i);
+                      setSelectedGroupId(l.groups[0]?.id ?? null);
+                      setEditingCount(false);
+                      setEditingLevelName(false);
+                    }
                   }}
                   className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
                     i === viewLevel
@@ -469,7 +477,28 @@ export default function TournamentView({ tournament, players, isAdmin, onUpdate,
                       : 'bg-white border border-gray-200 text-gray-700 hover:border-blue-300'
                   }`}
                 >
-                  {l.name}{lDone ? ' ✓' : ''}
+                  {i === viewLevel && editingLevelName ? (
+                    <input
+                      autoFocus
+                      className="bg-transparent outline-none w-24 text-white placeholder-blue-200"
+                      value={levelNameInput}
+                      onClick={e => e.stopPropagation()}
+                      onChange={e => setLevelNameInput(e.target.value)}
+                      onBlur={() => {
+                        const name = levelNameInput.trim() || l.name;
+                        if (name !== l.name) {
+                          onUpdate({
+                            ...tournament,
+                            levels: tournament.levels.map((lv, li) => li === i ? { ...lv, name } : lv),
+                          });
+                        }
+                        setEditingLevelName(false);
+                      }}
+                      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                    />
+                  ) : (
+                    <>{l.name}{lDone ? ' ✓' : ''}</>
+                  )}
                 </button>
               );
             })}
