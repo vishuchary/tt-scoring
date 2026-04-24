@@ -13,7 +13,10 @@ function toArray<T>(val: unknown): T[] {
 function normalizeGroup(g: any): Group {
   return {
     ...g,
-    teams: toArray(g.teams),
+    teams: toArray(g.teams).map((t: any) => ({
+      ...t,
+      players: toArray<string>(t.players),
+    })),
     matches: toArray<Match>(g.matches).map((m: any) => ({
       ...m,
       games: toArray(m.games),
