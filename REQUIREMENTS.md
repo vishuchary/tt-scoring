@@ -244,6 +244,13 @@ app/
   public/
     banner.jpg                   # Club group photo
     pwa-192.png / pwa-512.png    # PWA icons
+  scripts/
+    seed-test-tournament.js      # Seed 1 test tournament (18 players, 3 levels, doubles)
+    seed-tournaments-2026.js     # Seed 3 completed 2026 tournaments (20 players)
+    recompute-rankings.js        # Rewrite /rankings from all tournament data
+sample-tournaments/
+  players_20.json                # Firebase export: 20 players + 3 tournaments
+  tournament_sampes.json         # Earlier sample export
 ```
 
 ---
@@ -544,6 +551,52 @@ PWA install on iPhone:
 - Open app URL in Safari → Share → Add to Home Screen
 - Hard refresh after updates: close app fully and reopen
 ```
+
+---
+
+## Scripts
+
+Utility Node.js scripts in `app/scripts/` (ES modules, run with `node`):
+
+| Script | Purpose |
+|---|---|
+| `seed-test-tournament.js` | Creates a 3-level doubles tournament with 18 players, random teams & results |
+| `seed-tournaments-2026.js` | Creates 3 completed 2026 tournaments for all 20 players (see below) |
+| `recompute-rankings.js` | Reads all tournaments from Firebase, rewrites `/rankings` — use after manual DB edits |
+
+### 2026 Seed Tournaments
+
+**New Year 2026 (Singles)**
+- 20 players, one team per player
+- L1: 4 groups × 5 players, best of 3 sets
+- L2: Top 2 from each group → 2 groups × 4 players, best of 3 sets
+- Finals: Top 1 from each group, best of 5 sets
+
+**Summer 2026 Doubles**
+- 10 doubles teams (20 players randomly paired)
+- L1: 2 groups × 5 teams, best of 3 sets
+- L2: Top 2 from each group → 2 groups × 2 teams, best of 3 sets
+- Finals: Top 1 from each group, best of 5 sets
+
+**Winter 2026 Doubles**
+- 10 doubles teams (20 players randomly paired)
+- L1: 1 group × 10 teams, 2 games each (no best-of)
+- L2: Top 4 teams, 1 group × 4 teams, best of 5 sets
+- Finals: Top 2 teams, best of 5 sets
+
+All seed tournaments are generated with random-but-valid scores and are fully completed (all matches marked done, rankings recomputed).
+
+### Sample Data
+
+`sample-tournaments/players_20.json` — Firebase export with 20 player profiles and 3 tournaments (Spring Tournament, Summer 2026, Test Tournament). Use as reference for the data shape or to restore a known state.
+
+---
+
+## Club Players (20 registered)
+
+Kiran, Shiva Monigari, Sharma, Chandu, Sagar, Kumar, Chary, Raja, Rama, Prajwal, Prasad, Harsha, Pradeep, Sateesh V, Manju, Teju, Giri, Shiva Meda, Hemanth, Ravi
+
+All players stored in Firebase at `/players/{id}` with fields: name, age, sex, hand, place.
 
 ---
 

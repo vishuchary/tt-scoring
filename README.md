@@ -38,6 +38,11 @@ All connected clients update instantly
 | `src/components/PlayersScreen.tsx` | Player profile management (add/edit/delete) |
 | `src/components/RankingsScreen.tsx` | IPL-style player leaderboard |
 | `src/components/AdminLogin.tsx` | PIN entry modal |
+| `scripts/seed-test-tournament.js` | Seeds a 3-level doubles test tournament (18 players, random results) |
+| `scripts/seed-tournaments-2026.js` | Seeds 3 completed 2026 tournaments (20 players: singles + doubles) |
+| `scripts/recompute-rankings.js` | Reads all tournaments from Firebase and rewrites `/rankings` |
+| `sample-tournaments/players_20.json` | Firebase export snapshot: 20 player profiles + 3 seed tournaments |
+| `sample-tournaments/tournament_sampes.json` | Earlier sample tournament export |
 
 ### Data model
 
@@ -76,6 +81,25 @@ Rankings are stored in Firebase at `/rankings/{playerName}` as `PlayerRanking` o
 | Tournament runner-up | +1 bonus |
 
 Tied players get the same rank; next rank skips (1, 1, 3, …). Non-admins see top N players only (configurable via `VITE_PUBLIC_RANKINGS_LIMIT`, default 5). Score breakdown (P/G/B) visible to admins only.
+
+### Club players (20 registered)
+
+Kiran, Shiva Monigari, Sharma, Chandu, Sagar, Kumar, Chary, Raja, Rama, Prajwal, Prasad, Harsha, Pradeep, Sateesh V, Manju, Teju, Giri, Shiva Meda, Hemanth, Ravi
+
+### Seed data / scripts
+
+```bash
+# Seed 3 completed 2026 tournaments (New Year Singles, Summer Doubles, Winter Doubles)
+node app/scripts/seed-tournaments-2026.js
+
+# Seed a single 3-level test doubles tournament (18 players)
+node app/scripts/seed-test-tournament.js
+
+# Recompute /rankings from all existing tournaments (use after manual DB edits)
+node app/scripts/recompute-rankings.js
+```
+
+All scripts are ES modules (`type: "module"` in package.json) and run directly with Node.js.
 
 ### Real-time sync
 
